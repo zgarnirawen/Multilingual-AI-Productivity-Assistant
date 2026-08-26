@@ -1156,7 +1156,7 @@ This project demonstrates the integration of multiple software engineering disci
 
 **Rawen Zgarni**
 
-Software Engineering / Computer Science
+computer eng student
 
 GitHub:
 
