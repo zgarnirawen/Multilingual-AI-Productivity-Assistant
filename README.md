@@ -1,1371 +1,1173 @@
-Multilingual AI Productivity Assistant
+# Multilingual AI Productivity Assistant
 
-A full-stack AI productivity assistant developed during my AI Summer Internship at 3LM Solutions. The project explores how natural-language and voice interactions can be transformed into structured, validated productivity actions through an AI-powered backend and a React Native / Expo client.
+A full-stack AI productivity assistant developed during my **AI Summer Internship at 3LM Solutions**. The project explores how natural-language and voice interactions can be transformed into structured, validated productivity actions through an AI-powered backend and a React Native / Expo client.
 
-Internship: AI Summer Internship — 3LM Solutions
-Focus: Natural Language Processing, LLM integration, voice interaction, backend engineering, automated validation, and Continuous Integration
+> **Internship:** AI Summer Internship — 3LM Solutions  
+> **Focus:** Natural Language Processing, LLM integration, voice interaction, backend engineering, automated validation, and Continuous Integration
 
-Overview
+---
 
-The Multilingual AI Productivity Assistant processes user requests expressed in natural language or voice and routes them through an AI-assisted backend.
+## Overview
 
-The application combines:
+The Multilingual AI Productivity Assistant is a full-stack application designed to let users interact with productivity features using natural language instead of traditional forms and menus.
 
-LLM-based intent recognition
+The assistant can interpret requests expressed in French or English, identify the user's intent, extract relevant entities, generate conversational responses, propose productivity actions, and execute an action only after explicit confirmation from the user.
 
-Structured entity extraction
+The project combines:
 
-Conversational response generation
+- Natural Language Processing
+- Large Language Models
+- Structured intent detection
+- Entity extraction
+- Multilingual interaction
+- Voice input
+- Speech-to-text
+- Text-to-speech
+- REST APIs
+- React Native mobile development
+- Database persistence
+- Automated testing
+- Regression testing
+- GitHub Actions Continuous Integration
 
-Task and event action workflows
+The main engineering objective is to build a reliable bridge between unstructured natural-language input and structured application actions.
 
-Target resolution and ambiguity handling
+---
 
-Explicit confirmation before state-changing actions
+## Internship Context
 
-Speech-to-text processing
+This project was developed during my **AI Summer Internship at 3LM Solutions**.
 
-French / English interaction support
+The internship provided an opportunity to work on an AI-powered application combining software engineering and artificial intelligence.
 
-Interaction-history persistence
+The project focused particularly on:
 
-Automated regression and validation checks
+- Integrating LLM-based services into a backend application
+- Designing natural-language intent detection
+- Extracting structured entities from user requests
+- Handling ambiguous or incomplete requests
+- Designing safe action confirmation flows
+- Supporting multilingual interactions
+- Integrating voice input
+- Building automated validation and regression tests
+- Setting up Continuous Integration with GitHub Actions
 
-Backend End-to-End testing
+The project also provided practical experience in taking an AI feature from the interaction layer through backend processing, validation, persistence, and automated testing.
 
-GitHub Actions Continuous Integration
+---
 
-A key architectural principle is the separation between AI interpretation and application-side execution. The assistant can propose an action, but a state-changing operation is executed only after explicit user confirmation.
+## Key Features
 
-The current task and event layer is implemented through an in-memory development module. This keeps the assistant workflow testable while leaving a clear integration boundary for future connection to persistent task and calendar modules.
+### AI-Powered Intent Detection
 
-Internship Context
+The backend uses an LLM to classify natural-language requests into structured application intents.
 
-This project was developed during my AI Summer Internship at 3LM Solutions.
+The intent detection service uses Groq with the **LLaMA 3.3 70B** model.
 
-The internship work focused on integrating AI capabilities into a practical full-stack application rather than treating the LLM as an isolated chatbot. The project therefore combines AI components with application logic, validation, persistence, testing, and CI automation.
+The assistant currently handles the following intents:
 
-The main areas addressed were:
+- `create_task`
+- `modify_task`
+- `delete_task`
+- `create_event`
+- `modify_event`
+- `delete_event`
+- `summarize_period`
+- `greeting`
+- `farewell`
+- `thanks`
+- `small_talk`
+- `capabilities`
+- `unrecognized`
 
-Natural-language understanding
+The service also extracts relevant entities from the user's request.
 
-LLM-based intent classification
+Examples include:
 
-Entity extraction and normalization
+- Task title
+- Event title
+- Date
+- Duration
+- Contact information
+- Other action-specific parameters
 
-Conversational response generation
+The model is explicitly instructed not to invent missing information.
 
-Action proposal and confirmation
+---
 
-Voice recording and speech-to-text
+### Confidence-Based Recognition
 
-Multilingual interaction
+Intent recognition uses a confidence threshold to avoid blindly executing uncertain interpretations.
 
-REST API development
+The current implementation uses a **0.6 confidence threshold**.
 
-Interaction-history persistence
+This allows the system to distinguish between:
 
-AI-specific regression testing
+- Clear requests
+- Ambiguous requests
+- Unsupported requests
+- Requests requiring clarification
 
-End-to-End testing
+When the assistant cannot reliably understand the request, it falls back to a controlled response instead of pretending that the request was understood.
 
-GitHub Actions CI
+---
 
-Key Features
+### Conversational AI
 
-Natural-Language Interaction
+The assistant also includes a dedicated conversational response service.
 
-Users can interact with the assistant using natural-language requests rather than predefined commands.
+It uses the Groq SDK and LLaMA 3.3 70B to generate responses based on:
 
-The backend identifies the type of request and extracts the information required by the corresponding application workflow.
+- User input
+- Detected intent
+- Application context
+- Current interaction state
+- Supported language
 
-Task Management
+The service supports both French and English.
 
-Supported task-oriented actions include:
+Responses are designed to remain concise and contextual, while deterministic fallback responses are available when the AI service cannot be reached.
 
-Create a task
+---
 
-Modify a task
+## Architecture
 
-Delete a task
+The application follows a frontend-backend architecture where the React Native client communicates with an Express REST API.
 
-Event Management
+Architecture:
 
-Supported event-oriented actions include:
-
-Create an event
-
-Modify an event
-
-Delete an event
-
-Ambiguity Handling
-
-The assistant does not blindly execute an action when the requested target cannot be resolved.
-
-The workflow distinguishes between:
-
-No target found
+    React Native / Expo
+            |
+            | REST API
+            v
+       Express Backend
+            |
+      +-----+-----+
+      |           |
+      v           v
+   Groq / LLM  Prisma / SQLite
+      |           |
+      |           v
+      |     Interaction History
       |
       v
-Not-found response
+ Intent Detection
+ Entity Extraction
+ Conversation Service
+ Action Resolution
+ Confirmation Handling
+      |
+      v
+ Productivity Action Layer
+      |
+      v
+ In-memory Task/Event Stubs
+
+---
+
+## End-to-End Processing Flow
+
+The assistant follows a multi-step processing pipeline.
+
+    User Request
+          |
+          +-------------------+
+          |                   |
+          v                   v
+      Text Input          Voice Input
+          |                   |
+          |                   v
+          |             Speech-to-Text
+          |                   |
+          +---------+---------+
+                    |
+                    v
+            Intent Detection
+                    |
+                    v
+            Entity Extraction
+                    |
+                    v
+             Target Resolution
+                    |
+             +------+------+
+             |      |      |
+             v      v      v
+           Valid  Missing  Ambiguous
+             |      |      |
+             +------+------+
+                    |
+                    v
+             Action Proposal
+                    |
+                    v
+            User Confirmation
+                    |
+               +----+----+
+               |         |
+               v         v
+              YES        NO
+               |         |
+               v         v
+            Execute    Cancel
+             Action     Action
+               |
+               v
+       Persist Interaction
+
+This separation between understanding, proposal, confirmation, and execution is an important part of the application's design.
+
+---
+
+## AI Intent Detection
+
+The intent detection logic is implemented in:
+
+    backend/src/services/intentDetection.ts
+
+The service uses structured LLM tool/function calling to obtain a predictable representation of the model's interpretation.
+
+The process includes:
+
+1. Receiving the user's natural-language request
+2. Sending the request to the LLM
+3. Selecting an intent
+4. Extracting relevant entities
+5. Assigning a confidence score
+6. Normalizing extracted values
+7. Checking whether required information is available
+8. Returning a structured result to the application
+
+A conceptual result can look like:
+
+    {
+      "intent": "create_task",
+      "confidence": 0.92,
+      "entities": {
+        "title": "Prepare internship report",
+        "duration": 30
+      }
+    }
+
+The application then performs additional validation before proposing the action.
+
+---
+
+## Entity Extraction and Normalization
+
+Intent recognition is combined with entity extraction so that natural-language requests can be converted into structured application data.
+
+The system can extract information such as:
+
+    Task:
+        title
+        duration
+
+    Event:
+        title
+        date
+        duration
+
+    Contact-related requests:
+        contact information
+
+The backend also normalizes extracted values before they are used by the application.
+
+For example, duration expressions can be interpreted from natural-language inputs such as:
+
+    30 minutes
+    one hour
+    1h
+
+The repository also contains regression checks specifically targeting action entities and duration normalization.
+
+---
+
+## Conversational Response Generation
+
+Conversational responses are handled by:
+
+    backend/src/services/conversationService.ts
+
+The service:
+
+- Uses the Groq SDK
+- Uses LLaMA 3.3 70B by default
+- Supports French and English
+- Receives structured application context
+- Uses a timeout for external AI requests
+- Provides deterministic fallback responses
+
+The goal is to separate conversation generation from action recognition, making the backend easier to reason about and test.
+
+---
+
+## Action Confirmation
+
+A key feature of the application is the explicit confirmation step.
+
+For action-oriented requests, the assistant can first propose what it believes the user wants to do.
+
+The action is then executed only after the user confirms it.
+
+Example:
+
+    User:
+    Create a task to prepare my report for 30 minutes.
+
+    Assistant:
+    I can create a 30-minute task called "Prepare my report".
+    Would you like me to proceed?
+
+    User:
+    Yes.
+
+    Assistant:
+    Task created.
+
+This design prevents the assistant from treating an uncertain LLM interpretation as an immediately executable command.
+
+The frontend maintains state for:
+
+- Pending actions
+- Confirmation
+- Cancellation
+- Modification
+- Clarification
+
+---
+
+## Target Resolution
+
+Before an action is executed, the application can resolve the target associated with the requested operation.
+
+The system distinguishes between situations such as:
+
+    Target not found
+    Target ambiguous
+    Target successfully resolved
+
+This is particularly important for modification and deletion requests.
+
+The assistant should not silently select an arbitrary target when the user's request is ambiguous.
+
+---
+
+## Task and Event Layer
+
+The backend currently contains a service layer for interacting with productivity entities.
+
+However, the current implementation uses **in-memory stubs** for task and event operations.
+
+The relevant implementation is:
+
+    backend/src/services/stubModules.ts
+
+These stubs simulate operations such as:
+
+- Creating tasks
+- Modifying tasks
+- Deleting tasks
+- Creating events
+- Modifying events
+- Deleting events
+
+This allows the AI interaction and validation workflow to be developed and tested independently from the final external productivity modules.
+
+The stub layer is intended to be replaced by real module or API integrations once their interfaces are stable.
+
+---
+
+## Voice Interaction
+
+The application supports voice-based interaction.
+
+The React Native frontend uses Expo audio capabilities to record user input.
+
+The recorded audio is sent to the backend through:
+
+    /assistant/transcribe
+
+The backend integrates speech-to-text processing and returns the transcribed text to the application.
+
+This allows the same intent-processing pipeline to handle both:
+
+    Voice
+      |
+      v
+    Speech-to-Text
+      |
+      v
+    Intent Detection
+      |
+      v
+    Entity Extraction
+      |
+      v
+    Action Processing
 
 and:
 
-Multiple possible targets
+    Text
       |
       v
-Clarification request
-
-Confirmation-Based Actions
-
-State-changing operations are proposed before execution.
-
-User request
-     |
-     v
-AI interpretation
-     |
-     v
-Proposed action
-     |
-     v
-User confirmation
-     |
-     +---- Cancel
-     |
-     +---- Confirm
-             |
-             v
-       Execute operation
-
-Voice Interaction
-
-The mobile application supports voice recording and sends audio to the backend for speech-to-text processing.
-
-Multilingual Support
-
-The application contains French / English interaction handling, including localized assistant messages and application responses.
-
-Architecture
-
-The system separates conversational AI, structured action recognition, and deterministic application logic.
-
-                           User
-                      Text / Voice
-                           |
-                           v
-                  React Native / Expo
-                           |
-                           v
-                    Express REST API
-                           |
-          +----------------+----------------+
-          |                |                |
-          v                v                v
-   Intent Detection   Conversation     Speech-to-Text
-          |              Service              |
-          |                |                  |
-          +----------------+------------------+
-                           |
-                           v
-                 Intent + Entity Processing
-                           |
-                           v
-                    Target Resolution
-                           |
-              +------------+-------------+
-              |            |              |
-              v            v              v
-        No target      Ambiguous       Valid target
-              |            |              |
-              v            v              v
-        Not found     Clarification   Proposed action
-                                         |
-                                         v
-                                  User Confirmation
-                                     /       \
-                                  Cancel     Confirm
-                                     |          |
-                                     v          v
-                                  Response   Execute action
-                                                |
-                                                v
-                                     In-memory task/event
-                                           module
-                                                |
-                                                v
-                                      Prisma / SQLite
-                                     interaction history
-
-Architectural Principle
-
-The LLM is used for language understanding and conversational generation, while the application remains responsible for:
-
-validating the interpreted request
-
-resolving targets
-
-handling ambiguity
-
-requesting confirmation
-
-executing the operation
-
-recording the interaction
-
-This creates a controlled boundary between probabilistic AI behavior and deterministic application behavior.
-
-AI Intent Detection
-
-The main intent-recognition service is:
-
-backend/src/services/intentDetection.ts
-
-The implementation uses the Groq SDK with the llama-3.3-70b-versatile model.
-
-The model is used to produce structured intent information instead of unrestricted natural-language output.
-
-Processing Flow
-
-Natural-language request
-          |
-          v
-      LLM analysis
-          |
-          +---- Intent
-          |
-          +---- Entities
-          |
-          +---- Confidence
-          |
-          v
- Normalization / validation
-          |
-          v
- Application decision
-
-The implementation includes a confidence threshold and instructs the model not to invent missing entities.
-
-Supported Intents
-
-The current intent catalogue includes:
-
-create_task
-modify_task
-delete_task
-
-create_event
-modify_event
-delete_event
-
-summarize_period
-
-greeting
-farewell
-thanks
-small_talk
-capabilities
-unrecognized
-
-The intent-processing layer also performs normalization for extracted action information, including common natural-language duration representations.
-
-Conversational Response Generation
-
-Conversational responses are handled separately by:
-
-backend/src/services/conversationService.ts
-
-This service uses the Groq SDK and the llama-3.3-70b-versatile model to generate contextual responses.
-
-The separation is intentional:
-
-Conversational request
-        |
-        v
-Conversation Service
-        |
-        v
-Natural-language response
-
-while an action-oriented request follows the structured intent/action pipeline.
-
-The conversation service also contains deterministic fallback behavior for situations where the LLM request fails or times out.
-
-Action Resolution and Confirmation
-
-Action-oriented requests follow a controlled workflow.
-
-User request
-     |
-     v
-Intent detection
-     |
-     v
-Entity extraction
-     |
-     v
-Target resolution
-     |
-     +---- No target
-     |        |
-     |        v
-     |   Not found response
-     |
-     +---- Multiple targets
-     |        |
-     |        v
-     |   Clarification
-     |
-     +---- One valid target
-              |
-              v
-        Proposed action
-              |
-              v
-       User confirmation
-          /         \
-       Cancel      Confirm
-         |            |
-         v            v
-      Response    Execute action
-
-The backend can return a proposedAction, allowing the frontend to maintain the pending action state.
-
-The frontend then provides confirmation, cancellation, and clarification flows.
-
-This design prevents the assistant from treating an LLM-generated interpretation as an automatically authorized state change.
-
-Task and Event Layer
-
-The current implementation exposes task and event behavior through:
-
-backend/src/services/stubModules.ts
-
-This module provides in-memory development stubs for the task and agenda functionality.
-
-The purpose of this layer is to validate the assistant's action workflow without coupling the AI layer directly to an external or unfinished domain API.
-
-Current Status
-
-AI Assistant
-     |
-     v
-Action workflow
-     |
-     v
-In-memory task/event module
-
-This is an intentional development boundary.
-
-The next integration step is to replace the in-memory implementation with the actual persistent task and agenda modules once stable interfaces are available.
-
-Voice and Speech-to-Text
-
-The mobile frontend supports audio recording.
-
-The backend exposes:
-
-POST /assistant/transcribe
-
-Audio is received as multipart form data and processed through the Groq speech-to-text API.
-
-The current implementation uses:
-
-Whisper Large V3
-
-Processing Flow
-
-Voice recording
+    Intent Detection
       |
       v
-Mobile application
+    Entity Extraction
       |
       v
-POST /assistant/transcribe
-      |
-      v
-Multer multipart upload
-      |
-      v
-Groq Speech-to-Text
-      |
-      v
-Whisper Large V3
-      |
-      v
-Transcribed text
-      |
-      v
-Assistant processing
+    Action Processing
 
-The current transcription configuration is oriented toward French-language speech.
+---
 
-The frontend also uses expo-speech for text-to-speech output.
+## Text-to-Speech
 
-Multilingual Interaction
+The mobile application also supports spoken responses through Expo speech capabilities.
 
-The backend contains an internationalization service:
+This creates a conversational interaction where the assistant can provide responses through both text and audio.
 
-backend/src/i18n.ts
+The overall voice interaction is:
 
-Localized handling is used for application messages such as:
+    User speaks
+         |
+         v
+    Speech-to-Text
+         |
+         v
+    AI Processing
+         |
+         v
+    Assistant Response
+         |
+         v
+    Text-to-Speech
+         |
+         v
+    Spoken Response
 
-confirmation messages
+---
 
-error messages
+## Multilingual Interaction
 
-task labels
+The assistant supports:
 
-event labels
+- French
+- English
 
-summary messages
+Language handling is integrated into the interaction and conversational layers.
 
-conversational responses
+The application also contains multilingual UI messages for:
 
-The frontend also provides French / English interaction messaging.
+- Confirmations
+- Cancellations
+- Clarifications
+- Errors
+- Quick actions
+- General assistant responses
 
-The multilingual design is intended to allow the assistant's conversational layer and application responses to remain consistent with the user's interaction language.
+The objective is to allow users to interact naturally without requiring commands to follow a rigid language-specific syntax.
 
-Mobile Application
+---
 
-The frontend is implemented with:
+## Mobile Application
 
-React Native
+The frontend is implemented using:
 
-Expo
+- React Native
+- Expo
+- Expo Router
+- TypeScript
+- Axios
+- Expo Audio
+- Expo Speech
 
-Expo Router
+The main application interface is implemented in:
 
-TypeScript
+    frontend/src/app/index.tsx
 
-Axios
+The mobile interface provides:
 
-React Navigation
+- Chat-based interaction
+- Text input
+- Voice recording
+- Assistant responses
+- Action proposals
+- Confirmation controls
+- Cancellation
+- Modification
+- Clarification
+- Quick actions
+- French and English interface messages
 
-Expo audio functionality
+The frontend communicates with the backend through HTTP requests using Axios.
 
-Expo Speech
+---
 
-The main assistant interface provides:
+## Backend
 
-Chat interaction
+The backend is implemented using:
 
-Text input
-
-Voice recording
-
-Speech-to-text requests
-
-Conversational responses
-
-Proposed-action display
-
-Confirmation
-
-Cancellation
-
-Modification / clarification flows
-
-Quick actions
-
-French / English UI messages
-
-Text-to-speech output
-
-Backend
-
-The backend is implemented with:
-
-Node.js
-
-TypeScript
-
-Express
-
-Groq SDK
-
-Prisma
-
-SQLite
-
-better-sqlite3
-
-Multer
-
-CORS
-
-dotenv
+- Node.js
+- TypeScript
+- Express
+- Prisma
+- SQLite
+- Groq SDK
+- Multer
+- Twilio dependency
 
 The backend is responsible for:
 
-Receiving assistant requests
+- Receiving user messages
+- Processing natural-language input
+- Detecting intents
+- Extracting entities
+- Generating conversational responses
+- Processing speech-to-text requests
+- Managing action confirmation
+- Persisting interaction history
+- Running validation and regression checks
 
-Detecting intent
+---
 
-Extracting entities
+## Database and Interaction History
 
-Generating conversational responses
+The application uses Prisma with SQLite for persistence.
 
-Resolving task/event targets
+The database stores assistant interaction history, including information such as:
 
-Creating proposed actions
+- User input
+- Input mode
+- Detected intent
+- Action taken
+- Creation timestamp
 
-Handling confirmation
+The interaction history makes it possible to retain structured information about assistant usage and provides a foundation for future analytics and monitoring.
 
-Processing audio transcription
+The Prisma schema is located at:
 
-Persisting assistant interactions
+    backend/prisma/schema.prisma
 
-Running validation and regression logic
+---
 
-Database and Interaction History
+## REST API
 
-The application uses:
+The backend exposes REST endpoints for assistant interactions and related operations.
 
-Prisma ORM
-     +
-SQLite
+The main interaction areas include:
 
-The schema is located at:
+    Assistant message processing
+    Action confirmation
+    Interaction history
+    Speech-to-text
 
-backend/prisma/schema.prisma
+The frontend communicates with these backend endpoints using Axios.
 
-The main persistence model is:
+The API layer provides the boundary between the mobile application and the AI/business logic implemented in the backend.
 
-model AssistantInteraction {
-  id             String   @id @default(uuid())
-  inputText      String
-  inputMode      String
-  detectedIntent String?
-  actionTaken    String?
-  createdAt      DateTime @default(now())
+---
 
-  @@index([createdAt])
-  @@index([detectedIntent])
-}
+## Testing and Validation
 
-The database records assistant interaction information including:
+The project includes several layers of automated validation.
 
-user input
+The backend provides npm scripts for:
 
-input mode
+    test
+    test:e2e
+    test:all
 
-detected intent
+The repository also contains dedicated validation services covering areas such as:
 
-action information
+- Action entity regression
+- Conversation fallback behavior
+- General fallback behavior
+- Intent fallback behavior
+- Intent recognition regression
+- Speech-to-text validation
 
-interaction timestamp
+Relevant files include:
 
-Indexes are defined for:
+    backend/src/services/actionEntityRegressionCheck.ts
+    backend/src/services/conversationFallbackCheck.ts
+    backend/src/services/fallbackRegressionCheck.ts
+    backend/src/services/intentFallbackCheck.ts
+    backend/src/services/intentRecognitionRegressionCheck.ts
+    backend/src/services/speechToTextValidationCheck.ts
 
-createdAt
-detectedIntent
+---
 
-Important distinction
+## Regression Testing
 
-The database currently persists assistant interaction history.
+The regression tests focus on preventing changes to the AI logic from silently breaking previously supported behavior.
 
-The task/event domain implementation remains in memory through stubModules.ts.
+The validation includes cases involving:
 
-REST API
+- Informal French requests
+- Typographical variations
+- Unsupported requests
+- Low-confidence intents
+- Action entities
+- Duration normalization
+- Conversational fallbacks
+- Speech-to-text integration contracts
 
-The backend exposes the assistant through REST endpoints.
+This is particularly important for AI-powered applications because model behavior can be less deterministic than traditional application logic.
 
-Endpoint
+---
 
-Purpose
+## End-to-End Testing
 
-GET /
+The backend also includes an end-to-end test suite:
 
-Backend availability / health response
+    backend/tests/e2e.ts
 
-GET /assistant/interactions
+The project provides configuration options for enabling E2E validation against a running backend.
 
-Retrieve interaction history
+The CI workflow can use environment variables such as:
 
-POST /assistant/interactions
+    E2E_ENABLED
+    E2E_BASE_URL
+    E2E_TIMEOUT_MS
 
-Store an interaction
+This allows the E2E layer to be enabled when an appropriate running environment is available.
 
-DELETE /assistant/interactions/:id
+---
 
-Delete an interaction
+## Continuous Integration
 
-POST /assistant/message
+The project uses GitHub Actions for automated validation.
 
-Process an assistant message
-
-POST /assistant/confirm-action
-
-Confirm and execute a proposed action
-
-POST /assistant/transcribe
-
-Transcribe uploaded audio
-
-Process Assistant Message
-
-POST /assistant/message
-
-Example:
-
-{
-  "inputText": "Create a task to finish my report",
-  "inputMode": "text"
-}
-
-The response can contain structured information including:
-
-detected intent
-
-interaction data
-
-conversational response
-
-proposed action
-
-confirmation information
-
-task/event information
-
-summary information
-
-Confirm Action
-
-POST /assistant/confirm-action
-
-This endpoint is used to execute validated operations after the user confirms the proposed action.
-
-Supported action types include:
-
-create task
-
-modify task
-
-delete task
-
-create event
-
-modify event
-
-delete event
-
-Speech-to-Text
-
-POST /assistant/transcribe
-
-Accepts an uploaded audio file and returns the generated transcription.
-
-Testing and Validation
-
-Automated validation is an important part of the project.
-
-The repository contains dedicated validation logic for AI-related behavior in addition to the backend E2E suite.
-
-Validation Areas
-
-The current validation layer covers:
-
-Intent recognition
-
-Intent fallback behavior
-
-Conversation fallback behavior
-
-General fallback behavior
-
-Action/entity extraction
-
-Entity normalization
-
-Speech-to-text validation
-
-Backend End-to-End behavior
-
-Backend build validation
-
-Validation Services
-
-Relevant services include:
-
-backend/src/services/intentFallbackCheck.ts
-backend/src/services/conversationFallbackCheck.ts
-backend/src/services/fallbackRegressionCheck.ts
-backend/src/services/intentRecognitionRegressionCheck.ts
-backend/src/services/actionEntityRegressionCheck.ts
-backend/src/services/speechToTextValidationCheck.ts
-
-Test Commands
-
-From the backend/ directory:
-
-npm test
-
-Runs the configured regression and validation suites.
-
-npm run test:e2e
-
-Runs the backend End-to-End suite:
-
-backend/tests/e2e.ts
-
-npm run test:all
-
-Runs the configured complete test sequence.
-
-Continuous Integration
-
-The repository uses GitHub Actions for Continuous Integration.
-
-The workflow is:
-
-.github/workflows/assistant-validation.yml
-
-CI Pipeline
-
-Pull Request / Manual execution
-              |
-              v
-       Checkout repository
-              |
-              v
-        Setup Node.js
-              |
-              v
-      Install dependencies
-              |
-              v
-       Generate Prisma Client
-              |
-              v
-         Build backend
-              |
-      +-------+-------+--------+
-      |       |       |        |
-      v       v       v        v
-   Fallback Intent  STT       E2E
-   checks   checks checks   optional
-      |       |       |        |
-      +-------+-------+--------+
-              |
-              v
-       Generate reports
-              |
-              v
-      Upload CI artifacts
-
-The workflow performs automated backend validation and produces test reports.
-
-E2E Configuration
-
-The E2E stage supports:
-
-E2E_ENABLED
-E2E_BASE_URL
-E2E_TIMEOUT_MS
-
-Example:
-
-E2E_ENABLED=true
-E2E_BASE_URL=http://localhost:3000
-E2E_TIMEOUT_MS=15000
-
-CI Reports
-
-The validation process can generate reports such as:
-
-backend/test-results/fallback-report.json
-backend/test-results/intent-recognition-report.json
-backend/test-results/e2e-report.json
-
-These reports can be uploaded as GitHub Actions artifacts.
-
-Scope: the current workflow is a Continuous Integration pipeline. It validates and builds the backend and executes automated checks; it is not presented as a complete production deployment pipeline.
-
-Technology Stack
-
-AI
-
-Technology
-
-Purpose
-
-Groq SDK
-
-LLM and speech-to-text integration
-
-LLaMA 3.3 70B
-
-Intent recognition and conversational generation
-
-Whisper Large V3
-
-Speech-to-text
-
-Backend
-
-Technology
-
-Purpose
-
-Node.js
-
-Runtime
-
-TypeScript
-
-Application language
-
-Express
-
-REST API
-
-Prisma
-
-ORM
-
-SQLite
-
-Interaction-history database
-
-better-sqlite3
-
-SQLite driver
-
-Multer
-
-Audio upload handling
-
-CORS
-
-Cross-origin request handling
-
-dotenv
-
-Environment configuration
-
-Frontend
-
-Technology
-
-Purpose
-
-React Native
-
-Mobile application
-
-Expo
-
-Mobile development platform
-
-Expo Router
-
-Application routing
-
-TypeScript
-
-Application language
-
-Axios
-
-HTTP client
-
-React Navigation
-
-Navigation
-
-Expo audio functionality
-
-Voice recording
-
-Expo Speech
-
-Text-to-speech
-
-Quality and CI
-
-Technology
-
-Purpose
-
-GitHub Actions
-
-Continuous Integration
-
-Regression checks
-
-AI behavior validation
-
-E2E tests
-
-Backend End-to-End validation
-
-JSON reports
-
-Test result reporting
-
-GitHub Actions artifacts
-
-CI result storage
-
-Communication Dependency
-
-The backend also includes the Twilio dependency for communication-related functionality. The current README intentionally does not claim a production WhatsApp webhook/message-ingestion layer unless such a layer is present in the implementation.
-
-Project Structure
-
-Multilingual-AI-Productivity-Assistant/
-|
-├── backend/
-│   ├── prisma/
-│   │   └── schema.prisma
-│   |
-│   ├── src/
-│   │   ├── services/
-│   │   │   ├── conversationService.ts
-│   │   │   ├── intentDetection.ts
-│   │   │   ├── intentFallbackCheck.ts
-│   │   │   ├── conversationFallbackCheck.ts
-│   │   │   ├── fallbackRegressionCheck.ts
-│   │   │   ├── intentRecognitionRegressionCheck.ts
-│   │   │   ├── actionEntityRegressionCheck.ts
-│   │   │   ├── speechToTextValidationCheck.ts
-│   │   │   └── stubModules.ts
-│   │   │
-│   │   ├── i18n.ts
-│   │   └── index.ts
-│   │
-│   ├── tests/
-│   │   └── e2e.ts
-│   │
-│   ├── package.json
-│   ├── package-lock.json
-│   └── prisma.config.ts
-│
-├── frontend/
-│   ├── src/
-│   │   ├── app/
-│   │   └── components/
-│   │
-│   ├── package.json
-│   └── ...
-│
-├── docs/
-│   ├── e2e-test-plan-4180.md
-│   └── speech-to-text-test-plan-4176.md
-│
-├── .github/
-│   └── workflows/
-│       └── assistant-validation.yml
-│
-└── README.md
-
-Installation
-
-Prerequisites
-
-For the backend:
-
-Node.js
-
-npm
-
-Git
-
-For frontend development:
-
-Expo tooling
-
-Android Studio for Android development
-
-Xcode for iOS development on macOS
-
-Clone the Repository
-
-git clone https://github.com/zgarnirawen/Multilingual-AI-Productivity-Assistant.git
-cd Multilingual-AI-Productivity-Assistant
-
-Backend Setup
+The workflow is located at:
+
+    .github/workflows/assistant-validation.yml
+
+The workflow can be triggered manually and through pull requests.
+
+The CI pipeline performs tasks including:
+
+1. Checking out the repository
+2. Setting up Node.js
+3. Installing dependencies
+4. Generating the Prisma client
+5. Building the backend
+6. Running offline fallback regression tests
+7. Running intent recognition regression tests
+8. Validating the speech-to-text integration contract
+9. Optionally running E2E tests
+10. Uploading generated validation reports
+
+The CI pipeline is primarily focused on **automated validation and regression testing**.
+
+It should therefore be considered Continuous Integration rather than a complete production Continuous Delivery or Continuous Deployment system.
+
+---
+
+## Technology Stack
+
+### Artificial Intelligence
+
+- Groq API
+- LLaMA 3.3 70B
+- Structured LLM tool/function calling
+- Intent classification
+- Entity extraction
+- Confidence scoring
+- Natural-language processing
+
+### Backend
+
+- Node.js
+- TypeScript
+- Express
+- Prisma
+- SQLite
+- Multer
+- Groq SDK
+
+### Frontend
+
+- React Native
+- Expo
+- Expo Router
+- TypeScript
+- Axios
+- Expo Audio
+- Expo Speech
+
+### Testing and Automation
+
+- Node.js test tooling
+- End-to-end testing
+- Regression testing
+- Integration contract validation
+- GitHub Actions
+
+### Development Tools
+
+- Git
+- GitHub
+- npm
+- Prisma
+
+---
+
+## Project Structure
+
+    Multilingual-AI-Productivity-Assistant/
+    |
+    +-- backend/
+    |   |
+    |   +-- prisma/
+    |   |   +-- schema.prisma
+    |   |
+    |   +-- src/
+    |   |   |
+    |   |   +-- services/
+    |   |   |   +-- intentDetection.ts
+    |   |   |   +-- conversationService.ts
+    |   |   |   +-- stubModules.ts
+    |   |   |   +-- actionEntityRegressionCheck.ts
+    |   |   |   +-- conversationFallbackCheck.ts
+    |   |   |   +-- fallbackRegressionCheck.ts
+    |   |   |   +-- intentFallbackCheck.ts
+    |   |   |   +-- intentRecognitionRegressionCheck.ts
+    |   |   |   +-- speechToTextValidationCheck.ts
+    |   |   |
+    |   |   +-- index.ts
+    |   |
+    |   +-- tests/
+    |   |   +-- e2e.ts
+    |   |
+    |   +-- package.json
+    |   +-- tsconfig.json
+    |   +-- ...
+    |
+    +-- frontend/
+    |   |
+    |   +-- src/
+    |   |   +-- app/
+    |   |       +-- index.tsx
+    |   |
+    |   +-- package.json
+    |   +-- ...
+    |
+    +-- .github/
+    |   +-- workflows/
+    |       +-- assistant-validation.yml
+    |
+    +-- README.md
+
+---
+
+# Installation
+
+## Prerequisites
+
+Make sure the following tools are installed:
+
+- Node.js
+- npm
+- Git
+- Expo development environment
+- Android Studio or another supported mobile development environment if running the Android application
+
+An API key for the Groq service is also required for the AI-powered functionality.
+
+---
+
+## Clone the Repository
+
+    git clone https://github.com/zgarnirawen/Multilingual-AI-Productivity-Assistant.git
+    cd Multilingual-AI-Productivity-Assistant
+
+---
+
+# Backend Setup
 
 Navigate to the backend:
 
-cd backend
+    cd backend
 
 Install dependencies:
 
-npm install
+    npm install
 
 Generate the Prisma client:
 
-npx prisma generate
+    npx prisma generate
 
-Create:
+Initialize or update the database according to the project's Prisma configuration:
 
-backend/.env
+    npx prisma migrate dev
 
-Example:
+Configure the required environment variables.
 
-PORT=3000
-DATABASE_URL="file:./dev.db"
-GROQ_API_KEY="your_groq_api_key"
+The AI functionality requires the appropriate Groq API credentials.
 
-For E2E execution:
+---
 
-E2E_ENABLED=true
-E2E_BASE_URL="http://localhost:3000"
-E2E_TIMEOUT_MS="15000"
-
-Do not commit real API keys, tokens, credentials, or other secrets.
-
-Running the Backend
+## Running the Backend
 
 Start the development server:
 
-npm run dev
+    npm run dev
 
-The backend runs on:
+The backend will then be available according to the port configured by the application.
 
-http://localhost:3000
+---
 
-Build the backend:
+# Frontend Setup
 
-npm run build
+Navigate to the frontend:
 
-Start the compiled application:
-
-npm start
-
-Running the Frontend
-
-From the project root:
-
-cd frontend
+    cd frontend
 
 Install dependencies:
 
-npm install
+    npm install
 
-Start Expo:
+Start the Expo development server:
 
-npm start
+    npx expo start
 
-Run the web version:
+The application can then be launched using a supported Expo development environment.
 
-npm run web
+---
 
-Run Android:
+## Frontend API Configuration
 
-npm run android
+The frontend currently contains environment-specific backend API addresses.
 
-Run iOS:
+The API base URL is configured in the frontend application.
 
-npm run ios
+Before running the mobile application on another device, the backend address may need to be adjusted to match the machine running the backend.
 
-Run linting:
+---
 
-npm run lint
+# Running Tests
 
-The frontend's API address is configured in the application code and may need to be adjusted depending on whether the backend is running locally, on an emulator, or on another machine.
+From the backend directory:
 
-Running Tests
+    npm test
 
-From backend/:
+Run end-to-end tests:
 
-Regression and validation tests
+    npm run test:e2e
 
-npm test
+Run the complete test suite:
 
-End-to-End tests
+    npm run test:all
 
-npm run test:e2e
+The repository also contains dedicated regression and validation services for AI behavior.
 
-Complete test sequence
+---
 
-npm run test:all
+# GitHub Actions CI
 
-Current Scope and Limitations
+The CI workflow is located at:
 
-The project should be understood as an internship-stage AI assistant implementation, not as a fully integrated production productivity platform.
+    .github/workflows/assistant-validation.yml
 
-Currently implemented
+It validates the application automatically by running build and regression checks.
 
-LLM-based intent recognition
+The workflow includes validation for:
 
-Structured entity extraction
+- Backend compilation
+- Prisma client generation
+- Fallback behavior
+- Intent recognition
+- Speech-to-text integration contracts
+- Optional end-to-end testing
 
-Intent confidence handling
+Validation reports can also be uploaded as GitHub Actions artifacts.
 
-Entity normalization
+---
 
-Conversational response generation
+# Current Scope and Limitations
 
-Task action workflows
+The project currently represents an AI-powered productivity assistant prototype with a complete natural-language processing and validation workflow.
 
-Event action workflows
+There are several areas that should be considered before treating the application as production-ready.
 
-Target resolution
+### Productivity Integrations
 
-Ambiguity handling
+Task and event operations are currently implemented through in-memory stubs.
 
-Explicit confirmation before state-changing actions
+The next integration stage would connect these operations to the actual productivity modules or external APIs.
 
-Voice recording
+### WhatsApp Integration
 
-Speech-to-text
+Although the backend contains a Twilio dependency, the current implementation does not claim a complete production WhatsApp webhook and message-ingestion layer.
 
-French / English interaction handling
+The current focus is the AI assistant and its mobile interaction workflow.
 
-Interaction-history persistence
+### Deployment
 
-Regression validation
+The GitHub Actions workflow currently focuses on Continuous Integration and automated validation.
 
-Backend E2E testing
+It does not represent a complete production deployment pipeline.
 
-GitHub Actions CI
+### Frontend API Configuration
 
-Current limitations
+The frontend currently contains environment-specific API configuration and should be moved to a proper environment-based configuration system for production use.
 
-Task and agenda integration
+### Production Hardening
 
-The current task/event implementation uses:
+Before production deployment, additional work would be required around:
 
-backend/src/services/stubModules.ts
+- Authentication and authorization
+- Secrets management
+- API security
+- Rate limiting
+- Input validation
+- Monitoring
+- Logging
+- Production database configuration
+- External service resilience
+- Deployment infrastructure
+- Observability
 
-This is an in-memory development implementation rather than a production persistent task/calendar integration.
+---
 
-WhatsApp transport
+# Security Considerations
 
-Although the repository name originated from the WhatsApp-oriented project scope and Twilio is present as a dependency, the current README does not claim a production WhatsApp webhook/message-ingestion layer.
+AI-generated decisions should not be treated as inherently reliable.
 
-CI versus deployment
+The application therefore uses several mechanisms to reduce unintended behavior:
 
-GitHub Actions currently provides Continuous Integration and automated validation.
+- Confidence-based intent recognition
+- Structured outputs
+- Entity validation
+- Explicit action confirmation
+- Clarification handling
+- Controlled fallback responses
+- Regression testing
 
-It should not be described as a complete production CI/CD deployment pipeline.
+API keys and other sensitive configuration values should be provided through environment variables rather than committed to the repository.
 
-Production hardening
+For a production deployment, additional security mechanisms should be implemented around authentication, authorization, rate limiting, secret management, and API protection.
 
-Additional work would be required before considering the application production-ready, including areas such as:
+---
 
-authentication and authorization
+# Future Improvements
 
-stronger request validation
+Several improvements can extend the current implementation.
 
-rate limiting
+## Real Productivity Module Integration
 
-production secret management
+Replace the in-memory stubs with real task and calendar APIs.
 
-structured logging
+Possible integrations could include:
 
-monitoring and observability
+- Task management systems
+- Calendar services
+- Internal productivity APIs
+- Enterprise modules
 
-dependency/security scanning
+---
 
-production database strategy
+## Production Voice Pipeline
 
-backups
+Further improve the speech interaction pipeline by adding:
 
-deployment hardening
+- Better audio validation
+- More robust error handling
+- Streaming transcription
+- Improved multilingual speech recognition
+- Voice activity detection
 
-Security Considerations
+---
 
-Sensitive configuration is provided through environment variables.
+## Improved AI Reliability
 
-At minimum, production deployment should address:
+Future iterations could introduce:
 
-Secret management
+- More comprehensive intent evaluation datasets
+- Automated model evaluation
+- Prompt versioning
+- Model fallback strategies
+- Structured output validation
+- AI observability
+- Latency monitoring
+- Confidence calibration
 
-API authentication
+---
 
-Authorization
+## Production Infrastructure
 
-Request validation
+A production-ready deployment could introduce:
 
-Rate limiting
+- Containerization
+- Environment-specific configurations
+- CI/CD deployment stages
+- Secrets management
+- Monitoring
+- Centralized logging
+- Health checks
+- Automated rollback mechanisms
+- Production-grade database infrastructure
 
-Request-size limits
+---
 
-HTTPS
+## Authentication and User Management
 
-Dependency vulnerability scanning
+The current project can be extended with:
 
-Structured logging
+- User authentication
+- User-specific productivity data
+- Role-based authorization
+- Secure session management
+- Per-user interaction history
 
-Production database security
+---
 
-Webhook signature verification where applicable
+# Engineering Focus
 
-No real credentials or API keys should be committed to the repository.
+The project was designed not only as an AI demonstration but also as a software engineering exercise.
 
-Future Improvements
+The implementation focuses on the complete flow from user interaction to backend processing and validation.
 
-Application Integration
+The main engineering concerns include:
 
-Replace stubModules.ts with real task and agenda integrations
+### Separation of Responsibilities
 
-Connect the assistant to persistent domain data
+Different services handle different responsibilities:
 
-Define stable interfaces between the assistant and productivity modules
+- Intent detection
+- Conversation generation
+- Action processing
+- Entity normalization
+- Speech-to-text
+- Persistence
+- Regression validation
 
-AI
+This reduces coupling between the different parts of the application.
 
-Expand intent evaluation datasets
+### Controlled AI Execution
 
-Improve recognition of informal and typo-prone requests
+The LLM is responsible for interpreting natural-language input, but application logic remains responsible for validating and executing actions.
 
-Expand multilingual evaluation
+This creates a separation between:
 
-Improve entity extraction accuracy
+    AI Interpretation
 
-Add systematic LLM response evaluation
+and:
 
-Improve conversational context handling
+    Application Execution
 
-Testing
+This is important when integrating generative AI into applications that can modify persistent state.
 
-Increase unit-test coverage
+### Fallback Handling
 
-Add broader API integration tests
+The application includes deterministic fallback behavior for cases where:
 
-Expand negative and error-path scenarios
+- The AI service is unavailable
+- The intent cannot be recognized
+- The request is unsupported
+- The request is ambiguous
+- Required information is missing
 
-Add coverage reporting and thresholds
+This prevents the application from depending entirely on successful LLM responses.
 
-Strengthen E2E execution against a representative staging environment
+### Automated Validation
 
-Production Engineering
+Regression and validation checks are included to make AI-related behavior easier to verify over time.
 
-Add authentication and authorization
+This is particularly useful because changes to prompts, models, or processing logic can affect previously supported inputs.
 
-Introduce production secret management
+---
 
-Add structured logging
+# What This Project Demonstrates
 
-Add monitoring and observability
+This project demonstrates practical experience across several areas of modern software and AI engineering.
 
-Add metrics and alerting
+### Artificial Intelligence
 
-Introduce production database backups
+- LLM integration
+- Natural-language understanding
+- Intent classification
+- Entity extraction
+- Structured model outputs
+- Confidence-based decisions
+- Multilingual interaction
+- Conversational response generation
 
-Add security and dependency scanning
+### Backend Engineering
 
-Add a deployment stage after successful CI validation
+- REST API development
+- TypeScript
+- Express
+- Service-oriented backend structure
+- Prisma
+- SQLite
+- External API integration
+- Error and fallback handling
 
-Engineering Focus
+### Mobile Development
 
-The project demonstrates how AI components can be integrated into a conventional software architecture while maintaining application-side control.
+- React Native
+- Expo
+- Expo Router
+- TypeScript
+- Audio recording
+- Speech synthesis
+- REST API integration
 
-1. Structured AI output
+### Software Quality
 
-Natural-language requests are converted into explicit intents and entities instead of passing unrestricted model output directly to application logic.
+- Automated testing
+- End-to-end testing
+- Regression testing
+- Integration validation
+- Fallback validation
 
-2. Validation before execution
+### DevOps and Automation
 
-AI-derived actions are processed through application logic before execution.
+- Git
+- GitHub
+- GitHub Actions
+- Automated CI workflows
+- Build validation
+- Test automation
+- Artifact generation
 
-3. Explicit user confirmation
+---
 
-State-changing actions require explicit confirmation, creating a clear boundary between AI interpretation and state mutation.
+# Internship Takeaway
 
-4. Deterministic fallbacks
+Developing this project during my AI Summer Internship at 3LM Solutions provided practical experience in designing and implementing an AI-powered application from the user interaction layer to backend processing and automated validation.
 
-The backend provides controlled fallback behavior for intent and conversational failures.
+The project allowed me to work on the intersection of:
 
-5. AI-specific regression testing
+- Artificial Intelligence
+- Backend development
+- Mobile development
+- Natural Language Processing
+- API integration
+- Database persistence
+- Automated testing
+- Continuous Integration
 
-The project contains dedicated validation services for intent recognition, fallback behavior, action/entity handling, and speech-to-text behavior.
+A central lesson from the project was that integrating an LLM into an application is not only about generating responses. A reliable AI application also requires structured outputs, validation, confidence handling, explicit action boundaries, fallbacks, testing, and clear separation between AI interpretation and application execution.
 
-6. Automated CI
+---
 
-GitHub Actions automates backend build and validation steps, making AI-related checks repeatable as part of the development workflow.
+# Repository
 
-What This Project Demonstrates
+GitHub repository:
 
-Artificial Intelligence
+https://github.com/zgarnirawen/Multilingual-AI-Productivity-Assistant
 
-Natural-language processing
+---
 
-LLM-based intent recognition
-
-Structured entity extraction
-
-Conversational generation
-
-Speech-to-text
-
-AI fallback strategies
-
-AI regression validation
-
-Backend Engineering
-
-TypeScript
-
-Express REST APIs
-
-Service separation
-
-Deterministic action workflows
-
-Prisma ORM
-
-SQLite persistence
-
-Mobile Development
-
-React Native
-
-Expo
-
-Voice interaction
-
-REST API integration
-
-Multilingual UI behavior
-
-Text-to-speech
-
-Software Quality
-
-Regression testing
-
-Validation suites
-
-End-to-End testing
-
-Test reporting
-
-CI artifacts
-
-DevOps / CI
-
-GitHub Actions
-
-Automated builds
-
-Automated validation
-
-Pull-request-oriented checks
-
-Artifact generation
-
-Internship Takeaway
-
-The main objective of the project was not simply to integrate an LLM into an application, but to explore how AI capabilities can be combined with deterministic software-engineering controls.
-
-The resulting architecture treats the language model as an intelligent interpretation and conversational component while keeping validation, confirmation, persistence, and action execution under application control.
-
-This approach provides a clearer foundation for evolving an AI prototype into a maintainable, testable, and eventually production-integrated system.
-
-Author
+# Author
 
 Rawen Zgarni
 
-Computer Engineering Student — ENICarthage, Tunisia
+Computer Engineering Student at ENICarthage
 
-GitHub: @zgarnirawen
+AI, MLOps, DevOps and Software Engineering
 
-Repository
-
-Multilingual-AI-Productivity-Assistant
+Developed during the AI Summer Internship at 3LM Solutions.
