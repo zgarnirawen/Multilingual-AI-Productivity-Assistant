@@ -4,6 +4,7 @@ import multer from "multer";
 import "dotenv/config";
 import { PrismaClient } from "../generated/prisma/client.js";
 import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import { productivityRouter } from "./routes/productivity.js";
 import { detectIntent } from "./services/intentDetection.js";
 import { generateConversationalResponse } from "./services/conversationService.js";
 import { t, formatDate, formatDateRange } from "./i18n.js";
@@ -30,6 +31,7 @@ const prisma = new PrismaClient({ adapter });
 const app = express();
 app.use(cors());
 app.use(express.json());
+app.use("/api/v1", productivityRouter);
 const upload = multer({ storage: multer.memoryStorage() });
 const PORT = process.env.PORT || 3000;
 
