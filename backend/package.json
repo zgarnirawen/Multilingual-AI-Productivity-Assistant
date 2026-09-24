@@ -12,6 +12,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "test:connectors": "tsx src/services/connectorContractCheck.ts",
+    "test:entities": "tsx src/services/entityExtractionCheck.ts",
     "test:generalization": "tsx src/services/intentGeneralizationCheck.ts"
   },
   "keywords": [],
