@@ -8,20 +8,7 @@ import { productivityRouter } from "./routes/productivity.js";
 import { detectIntent } from "./services/intentDetection.js";
 import { generateConversationalResponse } from "./services/conversationService.js";
 import { t, formatDate, formatDateRange } from "./i18n.js";
-import {
-  createStubTask,
-  createStubEvent,
-  getStubTasks,
-  getStubEvents,
-  getTasksInRange,
-  getEventsInRange,
-  findTasksByTitle,
-  findEventsByTitle,
-  deleteStubTask,
-  deleteStubEvent,
-  updateStubTask,
-  updateStubEvent,
-} from "./services/stubModules.js";
+import { todoConnector, agendaConnector } from "./connectors/index.js";
 
 const adapter = new PrismaBetterSqlite3({
   url: process.env.DATABASE_URL || "file:./dev.db",
@@ -157,8 +144,8 @@ app.post("/assistant/message", async (req, res) => {
       responseMessage = await generateConversationalResponse(inputText, {
         intent: result.intent,
         intentResult: result,
-        tasksCount: getStubTasks().length,
-        eventsCount: getStubEvents().length,
+        tasksCount: (await todoConnector.listTasks()).length,
+        eventsCount: (await agendaConnector.listEvents()).length,
       });
     }
 
@@ -168,8 +155,8 @@ app.post("/assistant/message", async (req, res) => {
     if (["modify_task", "delete_task", "modify_event", "delete_event"].includes(result.intent) && result.targetTitleQuery) {
       const isTask = result.intent === "modify_task" || result.intent === "delete_task";
       const matches = isTask
-        ? findTasksByTitle(result.targetTitleQuery)
-        : findEventsByTitle(result.targetTitleQuery);
+        ? await todoConnector.findTasksByTitle(result.targetTitleQuery)
+        : await agendaConnector.findEventsByTitle(result.targetTitleQuery);
 
       if (matches.length === 0) {
         modifyDeleteInfo = { status: "not_found", query: result.targetTitleQuery };
@@ -226,14 +213,14 @@ app.post("/assistant/message", async (req, res) => {
         summaryDataByDate = {};
         for (const date of result.summaryDates) {
           summaryDataByDate[date] = {
-            tasks: scope === "tasks" || scope === "both" ? getTasksInRange() : [],
-            events: scope === "events" || scope === "both" ? getEventsInRange(date, date) : [],
+            tasks: scope === "tasks" || scope === "both" ? await todoConnector.listTasks() : [],
+            events: scope === "events" || scope === "both" ? await agendaConnector.listEvents(date, date) : [],
           };
         }
       } else if (result.summaryPeriodStart && result.summaryPeriodEnd) {
         summaryData = {
-          tasks: scope === "tasks" || scope === "both" ? getTasksInRange() : [],
-          events: scope === "events" || scope === "both" ? getEventsInRange(result.summaryPeriodStart, result.summaryPeriodEnd) : [],
+          tasks: scope === "tasks" || scope === "both" ? await todoConnector.listTasks() : [],
+          events: scope === "events" || scope === "both" ? await agendaConnector.listEvents(result.summaryPeriodStart, result.summaryPeriodEnd) : [],
         };
         summaryMessage = t("labels.summary_wrapper", lang as any, {
           range: formatDateRange(lang as any, result.summaryPeriodStart, result.summaryPeriodEnd),
@@ -280,20 +267,20 @@ app.post("/assistant/confirm-action", async (req, res) => {
 
     if (intent === "create_task") {
       const title = details?.taskTitle || (lang === "fr" ? "Tâche sans titre" : "Untitled task");
-      createdItem = createStubTask(title);
+      createdItem = await todoConnector.createTask({ title });
     } else if (intent === "create_event") {
       const title = details?.eventTitle || (lang === "fr" ? "Événement sans titre" : "Untitled event");
-      createdItem = createStubEvent(title, details.eventDateTime || new Date().toISOString());
+      createdItem = await agendaConnector.createEvent({ title, dateTime: details.eventDateTime || new Date().toISOString(), duration: details.durationMinutes });
     } else if (intent === "delete_task") {
-      const success = deleteStubTask(targetId);
+      const success = await todoConnector.deleteTask(targetId);
       createdItem = { id: targetId, deleted: !!success };
     } else if (intent === "delete_event") {
-      const success = deleteStubEvent(targetId);
+      const success = await agendaConnector.deleteEvent(targetId);
       createdItem = { id: targetId, deleted: !!success };
     } else if (intent === "modify_task") {
-      createdItem = updateStubTask(targetId, details.newTaskTitle || details.taskTitle);
+      createdItem = await todoConnector.updateTask(targetId, { title: details.newTaskTitle || details.taskTitle });
     } else if (intent === "modify_event") {
-      createdItem = updateStubEvent(targetId, details.newEventTitle, details.newEventDateTime);
+      createdItem = await agendaConnector.updateEvent(targetId, { title: details.newEventTitle, dateTime: details.newEventDateTime, duration: details.durationMinutes });
     } else {
       return res.status(400).json({ error: "Unsupported intent for confirmation" });
     }
@@ -371,8 +358,8 @@ app.post("/assistant/transcribe", upload.single("audio"), async (req, res) => {
   }
 });
 
-app.get("/debug/tasks", (req, res) => res.json(getStubTasks()));
-app.get("/debug/events", (req, res) => res.json(getStubEvents()));
+app.get("/debug/tasks", async (_req, res) => res.json(await todoConnector.listTasks()));
+app.get("/debug/events", async (_req, res) => res.json(await agendaConnector.listEvents()));
 
 app.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
