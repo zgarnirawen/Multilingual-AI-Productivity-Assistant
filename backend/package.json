@@ -11,7 +11,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test:connectors": "tsx src/services/connectorContractCheck.ts"
+    "test:connectors": "tsx src/services/connectorContractCheck.ts",
+    "test:generalization": "tsx src/services/intentGeneralizationCheck.ts"
   },
   "keywords": [],
   "author": "",
