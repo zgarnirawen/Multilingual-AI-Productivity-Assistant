@@ -1,68 +1,57 @@
-name: Assistant validation
+name: AI MLOps Validation
 
 on:
+  push:
+    branches:
+      - master
   pull_request:
-    paths:
-      - "backend/**"
-      - "docs/e2e-test-plan-4180.md"
-      - "docs/speech-to-text-test-plan-4176.md"
-      - ".github/workflows/assistant-validation.yml"
+    branches:
+      - master
   workflow_dispatch:
 
 jobs:
-  backend-build-and-regression:
+  ai-validation:
+    name: AI validation
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: backend/package-lock.json
-      - run: npm install
-      - run: npx prisma generate
-      - run: npm run build
-      - name: Run offline fallback regression suite
-        run: npx tsx src/services/fallbackRegressionCheck.ts
-      - name: Run offline intent recognition regression suite
-        run: npx tsx src/services/intentRecognitionRegressionCheck.ts
-      - name: Validate speech-to-text integration contract
-        run: npx tsx src/services/speechToTextValidationCheck.ts
-      - name: Upload validation reports
-        if: always()
-        uses: actions/upload-artifact@v5
-        with:
-          name: assistant-regression-reports
-          path: |
-            backend/test-results/fallback-report.json
-            backend/test-results/intent-recognition-report.json
-          if-no-files-found: error
 
-  e2e:
-    if: ${{ vars.E2E_ENABLED == 'true' }}
-    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: backend
+
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: backend/package-lock.json
-      - run: npm install
-      - run: npm run test:e2e
-        env:
-          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL }}
-          E2E_TIMEOUT_MS: ${{ secrets.E2E_TIMEOUT_MS || '15000' }}
-      - name: Upload E2E report
-        if: always()
-        uses: actions/upload-artifact@v5
-        with:
-          name: assistant-e2e-report
-          path: backend/test-results/e2e-report.json
-          if-no-files-found: ignore
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: Build backend
+        run: npm run build
+
+      - name: Run intent recognition regression
+        run: npx tsx src/services/intentRecognitionRegressionCheck.ts
+
+      - name: Run AI generalization tests
+        run: npm run test:generalization
+
+      - name: Run entity extraction tests
+        run: npm run test:entities
+
+      - name: Run connector contract tests
+        run: npm run test:connectors
+
+      - name: Run API connector tests
+        run: npm run test:api-connectors
+
+      - name: Run speech-to-text contract validation
+        run: npx tsx src/services/speechToTextValidationCheck.ts
