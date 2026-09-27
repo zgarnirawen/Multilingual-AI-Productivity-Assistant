@@ -88,7 +88,7 @@ Expected response:
 ]
 ```
 
-The connector requires `id` and `title`. Other response fields are allowed.
+The external API is expected to return `id` and `title`. Other response fields are allowed; the connector does not perform runtime schema validation.
 
 ### Get a task
 
@@ -257,7 +257,7 @@ Expected response:
 ]
 ```
 
-The connector requires `id`, `title`, and `dateTime`. Additional fields are allowed.
+The external API is expected to return `id`, `title`, and `dateTime`. Additional fields are allowed; the connector does not perform runtime schema validation.
 
 ### List events in a date range
 
