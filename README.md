@@ -3,7 +3,7 @@
 A full-stack AI productivity assistant developed during my **AI Summer Internship at 3LM Solutions**. The project explores how natural-language and voice interactions can be transformed into structured, validated productivity actions through an AI-powered backend and a React Native / Expo client.
 
 > **Internship:** AI Summer Internship — 3LM Solutions  
-> **Focus:** Natural Language Processing, LLM integration, voice interaction, backend engineering, automated validation, and Continuous Integration
+> **Focus:** Natural Language Processing, LLM integration, voice interaction, backend engineering, API integration, automated validation, regression testing, and Continuous Integration
 
 ---
 
@@ -26,6 +26,7 @@ The project combines:
 - REST APIs
 - React Native mobile development
 - Database persistence
+- External productivity API integration
 - Automated testing
 - Regression testing
 - GitHub Actions Continuous Integration
@@ -46,13 +47,15 @@ The project focused particularly on:
 - Designing natural-language intent detection
 - Extracting structured entities from user requests
 - Handling ambiguous or incomplete requests
-- Designing safe action confirmation flows
+- Designing explicit action confirmation flows
 - Supporting multilingual interactions
 - Integrating voice input
+- Designing pluggable productivity connectors
+- Integrating Todo and Agenda APIs through typed connector contracts
 - Building automated validation and regression tests
 - Setting up Continuous Integration with GitHub Actions
 
-The project also provided practical experience in taking an AI feature from the interaction layer through backend processing, validation, persistence, and automated testing.
+The project also provided practical experience in taking an AI feature from the interaction layer through backend processing, validation, persistence, external API boundaries, and automated testing.
 
 ---
 
@@ -134,6 +137,8 @@ Responses are designed to remain concise and contextual, while deterministic fal
 
 The application follows a frontend-backend architecture where the React Native client communicates with an Express REST API.
 
+The backend separates AI interpretation from productivity execution through connector interfaces.
+
 Architecture:
 
     React Native / Expo
@@ -158,10 +163,18 @@ Architecture:
  Confirmation Handling
       |
       v
- Productivity Action Layer
+ Productivity Connector Layer
       |
-      v
- In-memory Task/Event Stubs
+   +--+---------+
+   |            |
+   v            v
+TodoConnector  AgendaConnector
+   |            |
+   v            v
+Stub / API     Stub / API
+Implementation Implementation
+
+This connector boundary allows the assistant's action-processing logic to remain independent from the concrete productivity service.
 
 ---
 
@@ -213,9 +226,17 @@ The assistant follows a multi-step processing pipeline.
              Action     Action
                |
                v
+       Productivity Connector
+               |
+       +-------+-------+
+       |               |
+       v               v
+   Todo API        Agenda API
+               |
+               v
        Persist Interaction
 
-This separation between understanding, proposal, confirmation, and execution is an important part of the application's design.
+This separation between understanding, proposal, confirmation, connector execution, and persistence is an important part of the application's design.
 
 ---
 
@@ -353,28 +374,91 @@ The assistant should not silently select an arbitrary target when the user's req
 
 ---
 
-## Task and Event Layer
+## Productivity Connector Layer
 
-The backend currently contains a service layer for interacting with productivity entities.
+The productivity action layer is implemented as a set of typed connector interfaces.
 
-However, the current implementation uses **in-memory stubs** for task and event operations.
+### Todo Connector
 
-The relevant implementation is:
+The Todo connector is defined by:
 
-    backend/src/services/stubModules.ts
+    backend/src/connectors/todo/TodoConnector.ts
 
-These stubs simulate operations such as:
+The current implementations include:
 
+    backend/src/connectors/todo/StubTodoConnector.ts
+    backend/src/connectors/todo/TodoApiConnector.ts
+
+The API connector supports:
+
+- Listing tasks
+- Getting a task by ID
+- Searching tasks by title
 - Creating tasks
-- Modifying tasks
+- Updating tasks
 - Deleting tasks
+- Bearer-token authentication
+- Explicit handling of HTTP 404 responses
+- Propagation of unexpected API errors
+
+### Agenda Connector
+
+The Agenda connector is defined by:
+
+    backend/src/connectors/agenda/AgendaConnector.ts
+
+The current implementations include:
+
+    backend/src/connectors/agenda/StubAgendaConnector.ts
+    backend/src/connectors/agenda/AgendaApiConnector.ts
+
+The API connector supports:
+
+- Listing events
+- Filtering events by date range
+- Getting an event by ID
+- Searching events by title
 - Creating events
-- Modifying events
+- Updating events
 - Deleting events
+- Bearer-token authentication
+- Explicit handling of HTTP 404 responses
+- Propagation of unexpected API errors
 
-This allows the AI interaction and validation workflow to be developed and tested independently from the final external productivity modules.
+### Connector Selection
 
-The stub layer is intended to be replaced by real module or API integrations once their interfaces are stable.
+The connector entry point is:
+
+    backend/src/connectors/index.ts
+
+Assistant actions are routed through the productivity connector layer instead of being coupled directly to a concrete Todo or Agenda implementation.
+
+This makes the action-processing logic replaceable and allows the same assistant workflow to operate against either test stubs or HTTP-based productivity services.
+
+---
+
+## API Connector Validation
+
+The repository contains dedicated checks for the HTTP productivity connectors:
+
+    backend/src/services/apiConnectorCheck.ts
+
+The validation covers:
+
+- Todo CRUD operations
+- Agenda CRUD operations
+- Bearer-token propagation
+- Todo search queries
+- Agenda search queries
+- Agenda date-range queries
+- Expected 404 handling
+- Propagation of downstream server errors
+
+Additional connector contracts are validated through:
+
+    backend/src/services/connectorContractCheck.ts
+
+This separates connector behavior validation from the AI intent and entity regression suites.
 
 ---
 
@@ -526,6 +610,7 @@ The backend is responsible for:
 - Generating conversational responses
 - Processing speech-to-text requests
 - Managing action confirmation
+- Routing productivity actions through connector interfaces
 - Persisting interaction history
 - Running validation and regression checks
 
@@ -549,6 +634,8 @@ The Prisma schema is located at:
 
     backend/prisma/schema.prisma
 
+Local SQLite development databases are ignored by Git to avoid accidentally committing machine-specific database files.
+
 ---
 
 ## REST API
@@ -561,10 +648,11 @@ The main interaction areas include:
     Action confirmation
     Interaction history
     Speech-to-text
+    Productivity connector operations
 
 The frontend communicates with these backend endpoints using Axios.
 
-The API layer provides the boundary between the mobile application and the AI/business logic implemented in the backend.
+The API layer provides the boundary between the mobile application, AI/business logic, and external productivity services.
 
 ---
 
@@ -572,13 +660,18 @@ The API layer provides the boundary between the mobile application and the AI/bu
 
 The project includes several layers of automated validation.
 
-The backend provides npm scripts for:
+From the backend directory, the main scripts include:
 
-    test
-    test:e2e
-    test:all
+    npm test
+    npm run test:e2e
+    npm run test:all
+    npm run build
+    npm run test:connectors
+    npm run test:api-connectors
+    npm run test:entities
+    npm run test:generalization
 
-The repository also contains dedicated validation services covering areas such as:
+The validation covers:
 
 - Action entity regression
 - Conversation fallback behavior
@@ -586,15 +679,12 @@ The repository also contains dedicated validation services covering areas such a
 - Intent fallback behavior
 - Intent recognition regression
 - Speech-to-text validation
+- Todo and Agenda connector contracts
+- HTTP productivity connector behavior
+- Action entity extraction
+- Intent generalization across unseen paraphrases
 
-Relevant files include:
-
-    backend/src/services/actionEntityRegressionCheck.ts
-    backend/src/services/conversationFallbackCheck.ts
-    backend/src/services/fallbackRegressionCheck.ts
-    backend/src/services/intentFallbackCheck.ts
-    backend/src/services/intentRecognitionRegressionCheck.ts
-    backend/src/services/speechToTextValidationCheck.ts
+The connector and AI validation layers are intentionally separated so that changes to external API handling can be tested independently from changes to model-driven intent recognition.
 
 ---
 
@@ -612,6 +702,8 @@ The validation includes cases involving:
 - Duration normalization
 - Conversational fallbacks
 - Speech-to-text integration contracts
+- Todo and Agenda connector contracts
+- HTTP error handling
 
 This is particularly important for AI-powered applications because model behavior can be less deterministic than traditional application logic.
 
@@ -685,6 +777,7 @@ It should therefore be considered Continuous Integration rather than a complete 
 - SQLite
 - Multer
 - Groq SDK
+- Native Fetch API for HTTP productivity connectors
 
 ### Frontend
 
@@ -701,7 +794,8 @@ It should therefore be considered Continuous Integration rather than a complete 
 - Node.js test tooling
 - End-to-end testing
 - Regression testing
-- Integration contract validation
+- Connector contract validation
+- HTTP API connector validation
 - GitHub Actions
 
 ### Development Tools
@@ -724,18 +818,28 @@ It should therefore be considered Continuous Integration rather than a complete 
     |   |
     |   +-- src/
     |   |   |
+    |   |   +-- connectors/
+    |   |   |   +-- index.ts
+    |   |   |   +-- todo/
+    |   |   |   |   +-- TodoConnector.ts
+    |   |   |   |   +-- TodoApiConnector.ts
+    |   |   |   |   +-- StubTodoConnector.ts
+    |   |   |   +-- agenda/
+    |   |   |       +-- AgendaConnector.ts
+    |   |   |       +-- AgendaApiConnector.ts
+    |   |   |       +-- StubAgendaConnector.ts
+    |   |   |
     |   |   +-- services/
     |   |   |   +-- intentDetection.ts
     |   |   |   +-- conversationService.ts
-    |   |   |   +-- stubModules.ts
+    |   |   |   +-- connectorContractCheck.ts
+    |   |   |   +-- apiConnectorCheck.ts
     |   |   |   +-- actionEntityRegressionCheck.ts
-    |   |   |   +-- conversationFallbackCheck.ts
-    |   |   |   +-- fallbackRegressionCheck.ts
-    |   |   |   +-- intentFallbackCheck.ts
-    |   |   |   +-- intentRecognitionRegressionCheck.ts
-    |   |   |   +-- speechToTextValidationCheck.ts
+    |   |   |   +-- intentGeneralizationCheck.ts
+    |   |   |   +-- ...
     |   |   |
-    |   |   +-- index.ts
+    |   |   +-- routes/
+    |   |       +-- productivity.ts
     |   |
     |   +-- tests/
     |   |   +-- e2e.ts
@@ -852,15 +956,33 @@ From the backend directory:
 
     npm test
 
+Build the backend:
+
+    npm run build
+
+Run connector contract validation:
+
+    npm run test:connectors
+
+Run HTTP Todo and Agenda connector validation:
+
+    npm run test:api-connectors
+
+Run action entity validation:
+
+    npm run test:entities
+
+Run intent generalization validation:
+
+    npm run test:generalization
+
 Run end-to-end tests:
 
     npm run test:e2e
 
-Run the complete test suite:
+Run the complete base test suite:
 
     npm run test:all
-
-The repository also contains dedicated regression and validation services for AI behavior.
 
 ---
 
@@ -881,27 +1003,35 @@ The workflow includes validation for:
 - Speech-to-text integration contracts
 - Optional end-to-end testing
 
+The feature branch also includes dedicated validation for the productivity connector layer:
+
+- Todo and Agenda connector contracts
+- HTTP authentication handling
+- Search and date-range query construction
+- 404 handling
+- Downstream error propagation
+
 Validation reports can also be uploaded as GitHub Actions artifacts.
 
 ---
 
 # Current Scope and Limitations
 
-The project currently represents an AI-powered productivity assistant prototype with a complete natural-language processing and validation workflow.
-
-There are several areas that should be considered before treating the application as production-ready.
+The project currently represents an AI-powered productivity assistant with a natural-language processing workflow, explicit action confirmation, pluggable productivity connectors, and automated validation.
 
 ### Productivity Integrations
 
-Task and event operations are currently implemented through in-memory stubs.
+The assistant now has typed Todo and Agenda connector abstractions with both stub and HTTP API implementations.
 
-The next integration stage would connect these operations to the actual productivity modules or external APIs.
+The HTTP connectors are integration-ready: they support CRUD operations, search, Agenda date-range queries, optional Bearer authentication, expected 404 handling, and propagation of unexpected API failures.
+
+The concrete external Todo and Agenda service endpoints and credentials remain environment-specific. The connector layer is designed so the backend can target the appropriate productivity service without coupling assistant logic to a specific provider.
 
 ### WhatsApp Integration
 
 Although the backend contains a Twilio dependency, the current implementation does not claim a complete production WhatsApp webhook and message-ingestion layer.
 
-The current focus is the AI assistant and its mobile interaction workflow.
+The current focus is the AI assistant, mobile interaction workflow, and productivity connector architecture.
 
 ### Deployment
 
@@ -944,8 +1074,9 @@ The application therefore uses several mechanisms to reduce unintended behavior:
 - Clarification handling
 - Controlled fallback responses
 - Regression testing
+- Connector-level HTTP error handling
 
-API keys and other sensitive configuration values should be provided through environment variables rather than committed to the repository.
+API keys, Bearer tokens, and other sensitive configuration values should be provided through environment variables rather than committed to the repository.
 
 For a production deployment, additional security mechanisms should be implemented around authentication, authorization, rate limiting, secret management, and API protection.
 
@@ -955,11 +1086,11 @@ For a production deployment, additional security mechanisms should be implemente
 
 Several improvements can extend the current implementation.
 
-## Real Productivity Module Integration
+## Production Productivity Integrations
 
-Replace the in-memory stubs with real task and calendar APIs.
+Connect the existing connector interfaces to the final productivity services and configure their production endpoints and credentials.
 
-Possible integrations could include:
+Potential integrations include:
 
 - Task management systems
 - Calendar services
@@ -1027,13 +1158,13 @@ The current project can be extended with:
 
 The project was designed not only as an AI demonstration but also as a software engineering exercise.
 
-The implementation focuses on the complete flow from user interaction to backend processing and validation.
+The implementation focuses on the complete flow from user interaction to backend processing, validation, connector execution, and persistence.
 
 The main engineering concerns include:
 
 ### Separation of Responsibilities
 
-Different services handle different responsibilities:
+Different services and layers handle different responsibilities:
 
 - Intent detection
 - Conversation generation
@@ -1041,9 +1172,16 @@ Different services handle different responsibilities:
 - Entity normalization
 - Speech-to-text
 - Persistence
+- Productivity connector execution
 - Regression validation
 
 This reduces coupling between the different parts of the application.
+
+### Pluggable Integrations
+
+The Todo and Agenda interfaces isolate assistant behavior from concrete productivity services.
+
+The same action-processing workflow can use a stub implementation for local testing or an HTTP implementation for integration with an external service.
 
 ### Controlled AI Execution
 
@@ -1068,14 +1206,15 @@ The application includes deterministic fallback behavior for cases where:
 - The request is unsupported
 - The request is ambiguous
 - Required information is missing
+- A productivity target cannot be found
 
 This prevents the application from depending entirely on successful LLM responses.
 
 ### Automated Validation
 
-Regression and validation checks are included to make AI-related behavior easier to verify over time.
+Regression and validation checks are included to make AI-related behavior and external connector behavior easier to verify over time.
 
-This is particularly useful because changes to prompts, models, or processing logic can affect previously supported inputs.
+This is particularly useful because changes to prompts, models, processing logic, or external API handling can affect previously supported inputs.
 
 ---
 
@@ -1103,6 +1242,8 @@ This project demonstrates practical experience across several areas of modern so
 - Prisma
 - SQLite
 - External API integration
+- Typed connector abstractions
+- HTTP authentication
 - Error and fallback handling
 
 ### Mobile Development
@@ -1120,8 +1261,9 @@ This project demonstrates practical experience across several areas of modern so
 - Automated testing
 - End-to-end testing
 - Regression testing
-- Integration validation
-- Fallback validation
+- Integration contract validation
+- HTTP API connector validation
+- Error-path testing
 
 ### DevOps and Automation
 
@@ -1137,7 +1279,7 @@ This project demonstrates practical experience across several areas of modern so
 
 # Internship Takeaway
 
-Developing this project during my AI Summer Internship at 3LM Solutions provided practical experience in designing and implementing an AI-powered application from the user interaction layer to backend processing and automated validation.
+Developing this project during my AI Summer Internship at 3LM Solutions provided practical experience in designing and implementing an AI-powered application from the user interaction layer to backend processing, external API integration, and automated validation.
 
 The project allowed me to work on the intersection of:
 
@@ -1150,7 +1292,7 @@ The project allowed me to work on the intersection of:
 - Automated testing
 - Continuous Integration
 
-A central lesson from the project was that integrating an LLM into an application is not only about generating responses. A reliable AI application also requires structured outputs, validation, confidence handling, explicit action boundaries, fallbacks, testing, and clear separation between AI interpretation and application execution.
+A central lesson from the project was that integrating an LLM into an application is not only about generating responses. A reliable AI application also requires structured outputs, validation, confidence handling, explicit action boundaries, pluggable integrations, fallbacks, testing, and clear separation between AI interpretation and application execution.
 
 ---
 

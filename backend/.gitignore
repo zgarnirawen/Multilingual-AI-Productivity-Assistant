@@ -8,3 +8,6 @@ node_modules
 /prisma/*.db
 /prisma/*.db-shm
 /prisma/*.db-wal
+
+dev.db
+dev.db-journal

@@ -47,20 +47,32 @@ const tools: Groq.Chat.Completions.ChatCompletionTool[] = [{
       properties: {
         intent: { type: "string", enum: ["create_task","create_event","summarize_period","modify_task","delete_task","modify_event","delete_event","greeting","farewell","thanks","small_talk","capabilities","unrecognized"] },
         language: { type: "string", enum: ["fr", "en"] },
-        confidence: { type: "number", minimum: 0, maximum: 1 },
-        taskTitle: { type: "string", description: "Title/name of the task, only if intent is create_task." },
-        targetTitleQuery: { type: "string", description: "Only for modify/delete intents. The title or description used to refer to the existing item." },
-        newTaskTitle: { type: "string", description: "Only for modify_task. The new task title, if provided." },
-        newEventTitle: { type: "string", description: "Only for modify_event. The new event title, if provided." },
-        newEventDateTime: { type: "string", description: "Only for modify_event. New event date/time in ISO 8601, if provided." },
-        eventTitle: { type: "string", description: "Title/name of the event or appointment, only if intent is create_event." },
-        eventDateTime: { type: "string", description: "ISO 8601 date/time if mentioned or inferable, only if intent is create_event." },
-        durationMinutes: { type: "integer", minimum: 1, maximum: 1440, description: "Duration normalized to minutes. Examples: 30 minutes=30, 1 hour=60, 1h30=90. Omit when absent." },
-        contactName: { type: "string", description: "Person/contact explicitly associated with the task or event. Extract only the stated name; never invent contact data." },
-        summaryPeriodStart: { type: "string" },
-        summaryPeriodEnd: { type: "string" },
-        summaryScope: { type: "string", enum: ["tasks", "events", "both"] },
-        summaryDates: { type: "array", items: { type: "string" } },
+        confidence: {
+          type: "number",
+          minimum: 0,
+          maximum: 1,
+          description: "Numeric confidence between 0 and 1. Example: 0.92. Never write words; return a JSON number only.",
+    },
+        taskTitle: { type: ["string", "null"], description: "Title/name of the task, only if intent is create_task." },
+        targetTitleQuery: { type: ["string", "null"], description: "Only for modify/delete intents. The title or description used to refer to the existing item." },
+        newTaskTitle: { type: ["string", "null"], description: "Only for modify_task. The new task title, if provided." },
+        newEventTitle: { type: ["string", "null"], description: "Only for modify_event. The new event title, if provided." },
+        newEventDateTime: { type: ["string", "null"], description: "Only for modify_event. New event date/time in ISO 8601, if provided." },
+        eventTitle: { type: ["string", "null"], description: "Title/name of the event or appointment, only if intent is create_event." },
+        eventDateTime: { type: ["string", "null"], description: "ISO 8601 date/time if mentioned or inferable, only if intent is create_event." },
+        durationMinutes: {
+          type: ["integer", "null"],
+          minimum: 1,
+          maximum: 1440,
+          description: "Duration normalized to minutes. Examples: 30 minutes=30, 1 hour=60, 1h30=90. Return null when absent.",
+        },
+        contactName: {
+          type: ["string", "null"],
+          description: "Person/contact explicitly associated with the task or event. Extract only the stated name; never invent contact data. Return null when absent.",
+        },
+        summaryPeriodEnd: { type: ["string", "null"] },
+        summaryScope: { type: ["string", "null"], enum: ["tasks", "events", "both", null] },
+        summaryDates: { type: ["array", "null"], items: { type: "string" } },
       },
       required: ["intent", "language", "confidence"],
     },
@@ -70,7 +82,7 @@ const tools: Groq.Chat.Completions.ChatCompletionTool[] = [{
 export async function detectIntent(inputText: string): Promise<IntentResult> {
   const today = new Date().toISOString().split("T")[0];
   const completion = await groq.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
+    model: process.env.GROQ_CHAT_MODEL || "openai/gpt-oss-120b",
     messages: [
       { role: "system", content: `You are an intent classifier for a productivity assistant. Today's date is ${today} (${new Date().toLocaleDateString('fr-FR', { weekday: 'long' })}).
 
@@ -95,3 +107,5 @@ Examples: "n'oublie pas d'appeler sam" -> create_task + contactName="sam"; "rdv 
     return { intent: "unrecognized", confidence: 0 };
   }
 }
+
+
