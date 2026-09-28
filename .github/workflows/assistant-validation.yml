@@ -67,9 +67,6 @@ jobs:
       GROQ_CHAT_MODEL: ${{ vars.GROQ_CHAT_MODEL }}
 
     steps:
-      - name: Skip when Groq credentials are not configured
-        if: ${{ env.GROQ_API_KEY == '' }}
-        run: echo "Live LLM evaluation skipped; configure the GROQ_API_KEY repository secret to enable it."
 
       - name: Checkout
         if: ${{ env.GROQ_API_KEY != '' }}
