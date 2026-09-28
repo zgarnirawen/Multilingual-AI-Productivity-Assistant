@@ -9,9 +9,12 @@ on:
       - master
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
-  ai-validation:
-    name: AI validation
+  offline-validation:
+    name: Offline validation
     runs-on: ubuntu-latest
 
     defaults:
@@ -30,7 +33,7 @@ jobs:
           cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Generate Prisma client
         run: npx prisma generate
@@ -38,14 +41,8 @@ jobs:
       - name: Build backend
         run: npm run build
 
-      - name: Run intent recognition regression
+      - name: Run deterministic intent regression
         run: npx tsx src/services/intentRecognitionRegressionCheck.ts
-
-      - name: Run AI generalization tests
-        run: npm run test:generalization
-
-      - name: Run entity extraction tests
-        run: npm run test:entities
 
       - name: Run connector contract tests
         run: npm run test:connectors
@@ -55,3 +52,45 @@ jobs:
 
       - name: Run speech-to-text contract validation
         run: npx tsx src/services/speechToTextValidationCheck.ts
+
+  live-llm-evaluation:
+    name: Live Groq evaluation
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
+
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      GROQ_CHAT_MODEL: ${{ vars.GROQ_CHAT_MODEL }}
+
+    steps:
+      - name: Skip when Groq credentials are not configured
+        if: ${{ env.GROQ_API_KEY == '' }}
+        run: echo "Live LLM evaluation skipped; configure the GROQ_API_KEY repository secret to enable it."
+
+      - name: Checkout
+        if: ${{ env.GROQ_API_KEY != '' }}
+        uses: actions/checkout@v5
+
+      - name: Setup Node.js
+        if: ${{ env.GROQ_API_KEY != '' }}
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
+      - name: Install dependencies
+        if: ${{ env.GROQ_API_KEY != '' }}
+        run: npm ci
+
+      - name: Run live intent generalization evaluation
+        if: ${{ env.GROQ_API_KEY != '' }}
+        run: npm run test:generalization
+
+      - name: Run live entity extraction evaluation
+        if: ${{ env.GROQ_API_KEY != '' }}
+        run: npm run test:entities
