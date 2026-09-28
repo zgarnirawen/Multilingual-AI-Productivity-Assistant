@@ -58,10 +58,6 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
 
-    defaults:
-      run:
-        working-directory: backend
-
     env:
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
       GROQ_CHAT_MODEL: ${{ vars.GROQ_CHAT_MODEL }}
@@ -85,12 +81,15 @@ jobs:
 
       - name: Install dependencies
         if: ${{ env.GROQ_API_KEY != '' }}
+        working-directory: backend
         run: npm ci
 
       - name: Run live intent generalization evaluation
         if: ${{ env.GROQ_API_KEY != '' }}
+        working-directory: backend
         run: npm run test:generalization
 
       - name: Run live entity extraction evaluation
         if: ${{ env.GROQ_API_KEY != '' }}
+        working-directory: backend
         run: npm run test:entities
