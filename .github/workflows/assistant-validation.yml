@@ -2,11 +2,9 @@ name: AI MLOps Validation
 
 on:
   push:
-    branches:
-      - master
+    branches: [master]
   pull_request:
-    branches:
-      - master
+    branches: [master]
   workflow_dispatch:
 
 permissions:
@@ -16,43 +14,32 @@ jobs:
   offline-validation:
     name: Offline validation
     runs-on: ubuntu-latest
-
     defaults:
       run:
         working-directory: backend
-
     steps:
       - name: Checkout
         uses: actions/checkout@v5
-
       - name: Setup Node.js
         uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: backend/package-lock.json
-
       - name: Install dependencies
         run: npm ci
-
       - name: Generate Prisma client
         run: npx prisma generate
-
       - name: Build backend
         run: npm run build
-
       - name: Run deterministic intent regression
         run: npx tsx src/services/intentRecognitionRegressionCheck.ts
-
       - name: Run offline model fallback checks
         run: npm run test:model-fallback
-
       - name: Run connector contract tests
         run: npm run test:connectors
-
       - name: Run API connector tests
         run: npm run test:api-connectors
-
       - name: Run speech-to-text contract validation
         run: npx tsx src/services/speechToTextValidationCheck.ts
 
@@ -60,22 +47,17 @@ jobs:
     name: Live Groq evaluation
     runs-on: ubuntu-latest
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-
     defaults:
       run:
         working-directory: backend
-
     env:
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
       GROQ_CHAT_MODEL: ${{ vars.GROQ_CHAT_MODEL }}
       GROQ_FALLBACK_MODEL: ${{ vars.GROQ_FALLBACK_MODEL }}
-
     steps:
-
       - name: Checkout
         if: ${{ env.GROQ_API_KEY != '' }}
         uses: actions/checkout@v5
-
       - name: Setup Node.js
         if: ${{ env.GROQ_API_KEY != '' }}
         uses: actions/setup-node@v5
@@ -83,19 +65,18 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: backend/package-lock.json
-
       - name: Install dependencies
         if: ${{ env.GROQ_API_KEY != '' }}
         run: npm ci
-
       - name: Run live intent generalization evaluation
         if: ${{ env.GROQ_API_KEY != '' }}
         run: npm run test:generalization
-
       - name: Run live entity extraction evaluation
         if: ${{ env.GROQ_API_KEY != '' }}
         run: npm run test:entities
-
+      - name: Check evaluation regression gate
+        if: ${{ always() && env.GROQ_API_KEY != '' }}
+        run: npm run test:evaluation-gate
       - name: Upload evaluation metrics
         if: ${{ always() && env.GROQ_API_KEY != '' }}
         uses: actions/upload-artifact@v4
