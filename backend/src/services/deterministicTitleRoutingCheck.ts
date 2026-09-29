@@ -1,4 +1,4 @@
-import { detectDeterministicModifyTaskTitle } from "./intentDetection.js";
+import { detectDeterministicModifyTaskTitle } from "./deterministicIntentClassifier.js";
 
 const cases = [
   ["mets comme titre vérifier les factures", "vérifier les factures"],
