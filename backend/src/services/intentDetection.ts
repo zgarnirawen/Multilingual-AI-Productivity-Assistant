@@ -35,11 +35,20 @@ export function normalizeActionEntities(result: IntentResult): IntentResult {
   const normalized = { ...result };
   if (normalized.contactName) normalized.contactName = normalized.contactName.trim().replace(/\s+/g, ' ');
   if (normalized.targetTitleQuery) {
-    normalized.targetTitleQuery = normalized.targetTitleQuery
-      .trim()
-      .replace(/\s+/g, ' ')
-      .replace(/^(le|la|les|l')\s+/i, '')
-      .trim();
+    let query = normalized.targetTitleQuery.trim().replace(/\s+/g, ' ');
+    // Remove generic item-reference wording while preserving the identifying subject.
+    const genericPrefixes = [
+      /^(?:la|le|les|l')?\s*(?:tâche|tache|rappel|élément|element)\s+(?:concernant|à propos de|au sujet de|sur|pour)\s+/i,
+      /^(?:the\s+)?(?:task|reminder|item)\s+(?:about|concerning|regarding|for)\s+/i,
+      /^(?:la|le|les|l')\s+/i,
+      /^the\s+/i,
+    ];
+    let previous: string;
+    do {
+      previous = query;
+      for (const prefix of genericPrefixes) query = query.replace(prefix, '').trim();
+    } while (query !== previous);
+    normalized.targetTitleQuery = query || undefined;
   }
   if (normalized.durationMinutes !== undefined) {
     const duration = Number(normalized.durationMinutes);
@@ -113,7 +122,7 @@ export async function detectIntent(inputText: string): Promise<IntentResult> {
     messages: [
       { role: "system", content: `You are an intent classifier for a productivity assistant. Today's date is ${today} (${new Date().toLocaleDateString('fr-FR', { weekday: 'long' })}).
 
-Be flexible with casual speech, typos, abbreviations and voice-to-text errors. Extract action entities whenever explicitly present. Never invent a contact, duration, date, or name. Normalize event durations to minutes (30 minutes=30, 1 hour=60, 1h30=90). For relative event changes, use timeOffsetMinutes instead (30 minutes later=30, two hours later=120). For task requests, keep date/time separate from taskTitle in taskDateTime. For contacts, return only the person's stated name, never a phone number or other contact data.
+Be flexible with casual speech, typos, abbreviations and voice-to-text errors. Extract action entities whenever explicitly present. Never invent a contact, duration, date, or name. Normalize event durations to minutes (30 minutes=30, 1 hour=60, 1h30=90). For relative event changes, use timeOffsetMinutes instead (30 minutes later=30, two hours later=120). For task requests, keep date/time separate from taskTitle in taskDateTime. For contacts, return only the person's stated name, never a phone number or other contact data. For targetTitleQuery, extract the shortest meaningful identifying phrase, not generic wording such as "la tâche concernant", "tâche à propos de", "task about", or "reminder regarding"; for "Supprime la tâche concernant les factures", return "factures".
 
 Supported intents: greeting, farewell, thanks, small_talk, capabilities, create_task, create_event, modify_task, delete_task, modify_event, delete_event, summarize_period, unrecognized.
 For valid informal requests, use the closest intent and confidence >=0.7 when meaning is reasonably clear. Use <0.6 only when genuinely unclear. Always call classify_intent. For modify_task, changing an existing task title is not creating a new task: phrases such as "renomme cette tâche", "remplace le titre par", "mets comme titre", "mets plutôt comme titre", "change le nom de cette tâche", or "remplace le nom de la tâche" mean modify_task. When "comme titre" refers to an existing task, classify modify_task.
