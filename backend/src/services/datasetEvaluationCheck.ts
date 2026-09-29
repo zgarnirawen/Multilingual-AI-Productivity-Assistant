@@ -49,12 +49,14 @@ async function main() {
 
   const results: Array<Record<string, unknown>> = [];
   const confusionMatrix = emptyConfusionMatrix(cases);
-  const perIntent: Record<string, { total: number; passed: number }> = {};
+  const perIntent: Record<string, { total: number; completed: number; passed: number; errors: number }> = {};
   let intentPassed = 0;
+  let completed = 0;
   let entityChecks = 0;
   let entityPassed = 0;
   let confidenceSum = 0;
   let latencySum = 0;
+  const errorTypes: Record<string, number> = {};
 
   for (const testCase of cases) {
     const started = performance.now();
@@ -64,21 +66,33 @@ async function main() {
       result = await detectIntent(testCase.input);
     } catch (error) {
       const latencyMs = Number((performance.now() - started).toFixed(1));
+      const errorType = classifyError(error);
+      errorTypes[errorType] = (errorTypes[errorType] || 0) + 1;
+
       results.push({
         id: testCase.id,
+        language: testCase.language,
         input: testCase.input,
         expectedIntent: testCase.expectedIntent,
         actualIntent: null,
         confidence: null,
         latencyMs,
-        intentPassed: false,
+        intentPassed: null,
         entityChecks: 0,
         entityPassed: 0,
+        errorType,
         error: error instanceof Error ? error.message : String(error),
         status: "ERROR",
       });
-      perIntent[testCase.expectedIntent] ??= { total: 0, passed: 0 };
+
+      perIntent[testCase.expectedIntent] ??= {
+        total: 0,
+        completed: 0,
+        passed: 0,
+        errors: 0,
+      };
       perIntent[testCase.expectedIntent].total++;
+      perIntent[testCase.expectedIntent].errors++;
       confusionMatrix[testCase.expectedIntent] ??= {};
       confusionMatrix[testCase.expectedIntent]["__error__"] =
         (confusionMatrix[testCase.expectedIntent]["__error__"] || 0) + 1;
@@ -93,14 +107,21 @@ async function main() {
       valuesEqual(result[field as keyof IntentResult], expected),
     ).length;
 
+    completed++;
     intentPassed += intentPassedCase ? 1 : 0;
     entityChecks += entityEntries.length;
     entityPassed += entityMatches;
     confidenceSum += result.confidence ?? 0;
     latencySum += latencyMs;
 
-    perIntent[testCase.expectedIntent] ??= { total: 0, passed: 0 };
+    perIntent[testCase.expectedIntent] ??= {
+      total: 0,
+      completed: 0,
+      passed: 0,
+      errors: 0,
+    };
     perIntent[testCase.expectedIntent].total++;
+    perIntent[testCase.expectedIntent].completed++;
     perIntent[testCase.expectedIntent].passed += intentPassedCase ? 1 : 0;
 
     const row = confusionMatrix[testCase.expectedIntent];
@@ -123,40 +144,62 @@ async function main() {
   }
 
   const total = cases.length;
-  const errors = results.filter((item) => item.status === "ERROR").length;
-  const intentAccuracy = total ? Number(((intentPassed / total) * 100).toFixed(1)) : 0;
+  const errors = total - completed;
+  const intentAccuracy = completed
+    ? Number(((intentPassed / completed) * 100).toFixed(1))
+    : null;
   const entityAccuracy = entityChecks
     ? Number(((entityPassed / entityChecks) * 100).toFixed(1))
     : null;
+  const errorRate = total
+    ? Number(((errors / total) * 100).toFixed(1))
+    : 0;
+  const status = errors > 0
+    ? "DEGRADED"
+    : intentAccuracy !== null && intentAccuracy < 95
+      ? "FAILED"
+      : "PASS";
 
   const perIntentMetrics = Object.fromEntries(
     Object.entries(perIntent).map(([intent, value]) => [
       intent,
       {
         total: value.total,
+        completed: value.completed,
         passed: value.passed,
-        failed: value.total - value.passed,
-        accuracy: Number(((value.passed / value.total) * 100).toFixed(1)),
+        failed: value.completed - value.passed,
+        errors: value.errors,
+        accuracy: value.completed
+          ? Number(((value.passed / value.completed) * 100).toFixed(1))
+          : null,
       },
     ]),
   );
 
   const report = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     evaluation: "dataset-metrics",
     dataset: dataset.name,
     datasetSchemaVersion: dataset.schemaVersion,
     model: process.env.GROQ_CHAT_MODEL || "openai/gpt-oss-120b",
     fallbackModel: process.env.GROQ_FALLBACK_MODEL || null,
     mode: process.env.LLM_EVAL_MODE || "local",
+    status,
     total,
-    completed: total - errors,
+    completed,
     errors,
+    coverage: total ? Number(((completed / total) * 100).toFixed(1)) : 0,
+    errorRate,
+    errorTypes,
     metrics: {
       intentAccuracy,
       entityAccuracy,
-      averageLatencyMs: total ? Number((latencySum / Math.max(total - errors, 1)).toFixed(1)) : 0,
-      averageConfidence: total ? Number((confidenceSum / Math.max(total - errors, 1)).toFixed(3)) : 0,
+      averageLatencyMs: completed
+        ? Number((latencySum / completed).toFixed(1))
+        : null,
+      averageConfidence: completed
+        ? Number((confidenceSum / completed).toFixed(3))
+        : null,
     },
     perIntent: perIntentMetrics,
     confusionMatrix,
@@ -175,18 +218,34 @@ async function main() {
   console.table(
     Object.entries(perIntentMetrics).map(([intent, metrics]) => ({
       intent,
-      accuracy: `${metrics.accuracy}%`,
-      passed: `${metrics.passed}/${metrics.total}`,
+      accuracy: metrics.accuracy === null ? "N/A" : `${metrics.accuracy}%`,
+      passed: `${metrics.passed}/${metrics.completed}`,
+      errors: metrics.errors,
     })),
   );
   console.log(`Dataset cases: ${total}`);
-  console.log(`Intent accuracy: ${intentAccuracy}%`);
+  console.log(`Completed cases: ${completed}`);
+  console.log(`Provider/evaluation errors: ${errors}`);
+  console.log(`Coverage: ${report.coverage}%`);
+  console.log(`Error rate: ${errorRate}%`);
+  console.log(`Intent accuracy (completed cases): ${intentAccuracy === null ? "N/A" : intentAccuracy + "%"}`);
   console.log(`Entity accuracy: ${entityAccuracy === null ? "N/A" : entityAccuracy + "%"}`);
-  console.log(`Average latency: ${report.metrics.averageLatencyMs} ms`);
-  console.log(`Average confidence: ${report.metrics.averageConfidence}`);
-  console.log(`Report: evaluation-results/dataset-metrics.json`);
+  console.log(`Average latency: ${report.metrics.averageLatencyMs === null ? "N/A" : report.metrics.averageLatencyMs + " ms"}`);
+  console.log(`Average confidence: ${report.metrics.averageConfidence === null ? "N/A" : report.metrics.averageConfidence}`);
+  if (Object.keys(errorTypes).length > 0) {
+    console.log("Error types:", errorTypes);
+  }
+  console.log(`Evaluation status: ${status}`);
+  console.log("Report: evaluation-results/dataset-metrics.json");
 
-  if (errors > 0 || intentAccuracy < 95) process.exitCode = 1;
+  if (errors > 0) {
+    console.warn("Evaluation is DEGRADED: provider/evaluation errors were excluded from accuracy metrics.");
+    console.warn("A partial run is not a valid full-dataset quality benchmark.");
+    process.exitCode = 2;
+  } else if (intentAccuracy !== null && intentAccuracy < 95) {
+    console.error("Evaluation quality gate failed: intent accuracy is below 95%.");
+    process.exitCode = 1;
+  }
 }
 
 main().catch((error) => {
