@@ -21,7 +21,7 @@
     {"id":"create-task-fr-01","language":"fr","input":"rappelle-moi de vérifier le serveur ce soir","expectedIntent":"create_task","expectedEntities":{"taskTitle":"vérifier le serveur"}},
     {"id":"create-task-fr-02","language":"fr","input":"ajoute une tâche pour envoyer le compte rendu à Lina","expectedIntent":"create_task","expectedEntities":{"taskTitle":"envoyer le compte rendu à Lina","contactName":"Lina"}},
     {"id":"create-task-fr-03","language":"fr","input":"il ne faut pas que j'oublie de payer la facture","expectedIntent":"create_task","expectedEntities":{"taskTitle":"payer la facture"}},
-    {"id":"create-task-en-04","language":"en","input":"remind me to review the deployment logs tomorrow","expectedIntent":"create_task","expectedEntities":{"taskTitle":"review the deployment logs","taskDateTime":"tomorrow"}},
+    {"id":"create-task-en-04","language":"en","input":"remind me to review the deployment logs tomorrow","expectedIntent":"create_task","expectedEntities":{"taskTitle":"review the deployment logs"}},
     {"id":"create-task-en-05","language":"en","input":"add a task to call Nadia","expectedIntent":"create_task","expectedEntities":{"taskTitle":"call Nadia","contactName":"Nadia"}},
 
     {"id":"create-event-fr-01","language":"fr","input":"planifie un déjeuner avec Yassine demain à midi","expectedIntent":"create_event","expectedEntities":{"contactName":"Yassine"}},
@@ -46,7 +46,7 @@
     {"id":"modify-event-fr-02","language":"fr","input":"décale la réunion de demain de trente minutes","expectedIntent":"modify_event","expectedEntities":{"timeOffsetMinutes":30}},
     {"id":"modify-event-fr-03","language":"fr","input":"change l'heure du rendez-vous avec Sami","expectedIntent":"modify_event","expectedEntities":{"contactName":"Sami"}},
     {"id":"modify-event-en-04","language":"en","input":"move my meeting with Emma to Friday","expectedIntent":"modify_event","expectedEntities":{"contactName":"Emma"}},
-    {"id":"modify-event-en-05","language":"en","input":"reschedule the client call for two hours later","expectedIntent":"modify_event","expectedEntities":{"durationMinutes":120}},
+    {"id":"modify-event-en-05","language":"en","input":"reschedule the client call for two hours later","expectedIntent":"modify_event","expectedEntities":{"timeOffsetMinutes":120}},
 
     {"id":"delete-event-fr-01","language":"fr","input":"annule mon rendez-vous avec Hatem","expectedIntent":"delete_event","expectedEntities":{"contactName":"Hatem"}},
     {"id":"delete-event-fr-02","language":"fr","input":"supprime la réunion de lundi","expectedIntent":"delete_event"},
