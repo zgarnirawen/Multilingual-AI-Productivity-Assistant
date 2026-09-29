@@ -1,6 +1,7 @@
 import Groq from "groq-sdk";
 import { withModelFallback } from "./modelFallback.js";
 import { detectDeterministicModifyTaskTitle } from "./deterministicIntentClassifier.js";
+import { normalizeTargetTitleQuery } from "./targetTitleQuery.js";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const INTENT_CONFIDENCE_THRESHOLD = 0.6;
@@ -34,22 +35,7 @@ export interface IntentResult {
 export function normalizeActionEntities(result: IntentResult): IntentResult {
   const normalized = { ...result };
   if (normalized.contactName) normalized.contactName = normalized.contactName.trim().replace(/\s+/g, ' ');
-  if (normalized.targetTitleQuery) {
-    let query = normalized.targetTitleQuery.trim().replace(/\s+/g, ' ');
-    // Remove generic item-reference wording while preserving the identifying subject.
-    const genericPrefixes = [
-      /^(?:la|le|les|l')?\s*(?:tâche|tache|rappel|élément|element)\s+(?:concernant|à propos de|au sujet de|sur|pour)\s+/i,
-      /^(?:the\s+)?(?:task|reminder|item)\s+(?:about|concerning|regarding|for)\s+/i,
-      /^(?:la|le|les|l')\s+/i,
-      /^the\s+/i,
-    ];
-    let previous: string;
-    do {
-      previous = query;
-      for (const prefix of genericPrefixes) query = query.replace(prefix, '').trim();
-    } while (query !== previous);
-    normalized.targetTitleQuery = query || undefined;
-  }
+  if (normalized.targetTitleQuery) normalized.targetTitleQuery = normalizeTargetTitleQuery(normalized.targetTitleQuery);
   if (normalized.durationMinutes !== undefined) {
     const duration = Number(normalized.durationMinutes);
     normalized.durationMinutes = Number.isFinite(duration) && duration > 0 && duration <= 1440 ? Math.round(duration) : undefined;
