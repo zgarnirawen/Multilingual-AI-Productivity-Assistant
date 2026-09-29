@@ -14,9 +14,11 @@ export interface IntentResult {
   language?: "fr" | "en";
   confidence?: number;
   taskTitle?: string;
+  taskDateTime?: string;
   eventTitle?: string;
   eventDateTime?: string;
   durationMinutes?: number;
+  timeOffsetMinutes?: number;
   contactName?: string;
   summaryPeriodStart?: string;
   summaryPeriodEnd?: string;
@@ -43,6 +45,10 @@ export function normalizeActionEntities(result: IntentResult): IntentResult {
     const duration = Number(normalized.durationMinutes);
     normalized.durationMinutes = Number.isFinite(duration) && duration > 0 && duration <= 1440 ? Math.round(duration) : undefined;
   }
+  if (normalized.timeOffsetMinutes !== undefined) {
+    const offset = Number(normalized.timeOffsetMinutes);
+    normalized.timeOffsetMinutes = Number.isFinite(offset) && offset >= -1440 && offset <= 1440 && offset !== 0 ? Math.round(offset) : undefined;
+  }
   return normalized;
 }
 
@@ -62,7 +68,8 @@ const tools: Groq.Chat.Completions.ChatCompletionTool[] = [{
           maximum: 1,
           description: "Numeric confidence between 0 and 1. Example: 0.92. Never write words; return a JSON number only.",
     },
-        taskTitle: { type: ["string", "null"], description: "Title/name of the task, only if intent is create_task." },
+        taskTitle: { type: ["string", "null"], description: "Title/name of the task, only if intent is create_task. Do not include a separately extracted date/time phrase." },
+        taskDateTime: { type: ["string", "null"], description: "ISO 8601 due date/time for create_task when explicitly mentioned or inferable. Return null when absent." },
         targetTitleQuery: { type: ["string", "null"], description: "Only for modify/delete intents. The title or description used to refer to the existing item." },
         newTaskTitle: { type: ["string", "null"], description: "Only for modify_task. The new task title, if provided." },
         newEventTitle: { type: ["string", "null"], description: "Only for modify_event. The new event title, if provided." },
@@ -73,7 +80,13 @@ const tools: Groq.Chat.Completions.ChatCompletionTool[] = [{
           type: ["integer", "null"],
           minimum: 1,
           maximum: 1440,
-          description: "Duration normalized to minutes. Examples: 30 minutes=30, 1 hour=60, 1h30=90. Return null when absent.",
+          description: "Duration normalized to minutes for an event. Examples: 30 minutes=30, 1 hour=60, 1h30=90. Do not use for moving an existing event later/earlier.",
+        },
+        timeOffsetMinutes: {
+          type: ["integer", "null"],
+          minimum: -1440,
+          maximum: 1440,
+          description: "Time shift for modify_event. Examples: 30 minutes later=30, two hours later=120, 30 minutes earlier=-30. Use only for relative schedule changes.",
         },
         contactName: {
           type: ["string", "null"],
@@ -100,7 +113,7 @@ export async function detectIntent(inputText: string): Promise<IntentResult> {
     messages: [
       { role: "system", content: `You are an intent classifier for a productivity assistant. Today's date is ${today} (${new Date().toLocaleDateString('fr-FR', { weekday: 'long' })}).
 
-Be flexible with casual speech, typos, abbreviations and voice-to-text errors. Extract action entities whenever explicitly present. Never invent a contact, duration, date, or name. Normalize durations to minutes (30 minutes=30, 1 hour=60, 1h30=90). For contacts, return only the person's stated name, never a phone number or other contact data.
+Be flexible with casual speech, typos, abbreviations and voice-to-text errors. Extract action entities whenever explicitly present. Never invent a contact, duration, date, or name. Normalize event durations to minutes (30 minutes=30, 1 hour=60, 1h30=90). For relative event changes, use timeOffsetMinutes instead (30 minutes later=30, two hours later=120). For task requests, keep date/time separate from taskTitle in taskDateTime. For contacts, return only the person's stated name, never a phone number or other contact data.
 
 Supported intents: greeting, farewell, thanks, small_talk, capabilities, create_task, create_event, modify_task, delete_task, modify_event, delete_event, summarize_period, unrecognized.
 For valid informal requests, use the closest intent and confidence >=0.7 when meaning is reasonably clear. Use <0.6 only when genuinely unclear. Always call classify_intent. For modify_task, changing an existing task title is not creating a new task: phrases such as "renomme cette tâche", "remplace le titre par", "mets comme titre", "mets plutôt comme titre", "change le nom de cette tâche", or "remplace le nom de la tâche" mean modify_task. When "comme titre" refers to an existing task, classify modify_task.
