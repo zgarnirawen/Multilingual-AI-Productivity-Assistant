@@ -15,7 +15,8 @@
     "test:api-connectors": "tsx src/services/apiConnectorCheck.ts",
     "test:entities": "tsx src/services/entityExtractionCheck.ts",
     "test:generalization": "tsx src/services/intentGeneralizationCheck.ts",
-    "test:model-fallback": "tsx src/services/modelFallbackCheck.ts"
+    "test:model-fallback": "tsx src/services/modelFallbackCheck.ts",
+    "test:evaluation-gate": "tsx src/services/evaluationGateCheck.ts"
   },
   "keywords": [],
   "author": "",
