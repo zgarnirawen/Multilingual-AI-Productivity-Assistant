@@ -16,6 +16,7 @@
     "test:entities": "tsx src/services/entityExtractionCheck.ts",
     "test:generalization": "tsx src/services/intentGeneralizationCheck.ts",
     "test:model-fallback": "tsx src/services/modelFallbackCheck.ts",
+    "test:title-routing": "tsx src/services/deterministicTitleRoutingCheck.ts",
     "test:evaluation-gate": "tsx src/services/evaluationGateCheck.ts"
   },
   "keywords": [],
