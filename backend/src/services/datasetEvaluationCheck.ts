@@ -32,6 +32,36 @@ function valuesEqual(actual: unknown, expected: unknown): boolean {
   return actual === expected;
 }
 
+function classifyError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error);
+  const status = typeof error === "object" && error !== null && "status" in error
+    ? Number((error as { status?: unknown }).status)
+    : NaN;
+  const code = typeof error === "object" && error !== null && "code" in error
+    ? String((error as { code?: unknown }).code)
+    : "";
+
+  if (status === 429 || /rate.?limit|too many requests|quota|limit.*exceeded/i.test(message)) {
+    return "RATE_LIMITED";
+  }
+  if (
+    [408, 409, 425].includes(status) ||
+    (status >= 500 && status <= 599) ||
+    /timeout|timed out|temporar|service unavailable|connection reset/i.test(message)
+  ) {
+    return code === "ETIMEDOUT" || /timeout|timed out/i.test(message)
+      ? "NETWORK_ERROR"
+      : "PROVIDER_TRANSIENT_ERROR";
+  }
+  if ([401, 403].includes(status) || /unauthorized|forbidden|invalid.*api.?key|authentication/i.test(message)) {
+    return "PROVIDER_AUTH_ERROR";
+  }
+  if (code === "ECONNRESET" || code === "ECONNREFUSED" || code === "ENOTFOUND" || code === "EAI_AGAIN") {
+    return "NETWORK_ERROR";
+  }
+  return "EVALUATION_ERROR";
+}
+
 function emptyConfusionMatrix(cases: EvaluationCase[]) {
   const labels = [...new Set(cases.map((item) => item.expectedIntent))];
   return Object.fromEntries(
