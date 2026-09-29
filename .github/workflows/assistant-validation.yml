@@ -95,3 +95,12 @@ jobs:
       - name: Run live entity extraction evaluation
         if: ${{ env.GROQ_API_KEY != '' }}
         run: npm run test:entities
+
+      - name: Upload evaluation metrics
+        if: ${{ always() && env.GROQ_API_KEY != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: llm-evaluation-results
+          path: backend/evaluation-results/
+          if-no-files-found: error
+          retention-days: 14

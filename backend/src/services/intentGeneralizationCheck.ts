@@ -1,4 +1,6 @@
 import "dotenv/config";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { detectIntent } from "./intentDetection.js";
 
 type GeneralizationCase = {
@@ -88,6 +90,24 @@ async function main() {
   console.log(`Passed: ${passed}/${total}`);
   console.log(`Failed: ${failures}/${total}`);
   console.log(`Generalization accuracy: ${accuracy.toFixed(1)}%`);
+
+  const outputDir = resolve(process.cwd(), "evaluation-results");
+  mkdirSync(outputDir, { recursive: true });
+  writeFileSync(
+    resolve(outputDir, "generalization.json"),
+    JSON.stringify({
+      evaluation: "intent-generalization",
+      model: process.env.GROQ_CHAT_MODEL || "openai/gpt-oss-120b",
+      fallbackModel: process.env.GROQ_FALLBACK_MODEL || null,
+      total,
+      passed,
+      failed: failures,
+      accuracy: Number(accuracy.toFixed(1)),
+      timestamp: new Date().toISOString(),
+      cases: results,
+    }, null, 2) + "\n",
+    "utf8",
+  );
 
   if (failures > 0) {
     process.exitCode = 1;
