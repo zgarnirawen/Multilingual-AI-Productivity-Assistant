@@ -1,0 +1,6 @@
+{
+  "intentGeneralization": 100,
+  "entityExtraction": 100,
+  "minAccuracy": 95,
+  "maxRegressionDrop": 5
+}
