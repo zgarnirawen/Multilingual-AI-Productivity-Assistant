@@ -68,6 +68,7 @@ jobs:
     env:
       GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
       GROQ_CHAT_MODEL: ${{ vars.GROQ_CHAT_MODEL }}
+      GROQ_FALLBACK_MODEL: ${{ vars.GROQ_FALLBACK_MODEL }}
 
     steps:
 
