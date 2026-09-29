@@ -31,6 +31,13 @@ export interface IntentResult {
 export function normalizeActionEntities(result: IntentResult): IntentResult {
   const normalized = { ...result };
   if (normalized.contactName) normalized.contactName = normalized.contactName.trim().replace(/\s+/g, ' ');
+  if (normalized.targetTitleQuery) {
+    normalized.targetTitleQuery = normalized.targetTitleQuery
+      .trim()
+      .replace(/\s+/g, ' ')
+      .replace(/^(le|la|les|l')\s+/i, '')
+      .trim();
+  }
   if (normalized.durationMinutes !== undefined) {
     const duration = Number(normalized.durationMinutes);
     normalized.durationMinutes = Number.isFinite(duration) && duration > 0 && duration <= 1440 ? Math.round(duration) : undefined;
