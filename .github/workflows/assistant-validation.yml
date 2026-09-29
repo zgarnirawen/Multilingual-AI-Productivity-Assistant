@@ -34,6 +34,8 @@ jobs:
         run: npm run build
       - name: Run deterministic intent regression
         run: npx tsx src/services/intentRecognitionRegressionCheck.ts
+      - name: Run deterministic title-routing checks
+        run: npm run test:title-routing
       - name: Run offline model fallback checks
         run: npm run test:model-fallback
       - name: Run connector contract tests
