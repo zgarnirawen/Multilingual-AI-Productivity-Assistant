@@ -52,3 +52,19 @@ export function detectIntentForRegression(input: string): RegressionIntent {
 
   return "unrecognized";
 }
+import type { IntentResult } from "./intentDetection.js";
+
+export function detectDeterministicModifyTaskTitle(inputText: string): IntentResult | null {
+  const normalizedInput = inputText.trim().replace(/\s+/g, " ");
+  const match = normalizedInput.match(
+    /^(?:mets?(?:\s+plutôt)?\s+comme\s+titre|remplace\s+(?:le\s+)?(?:titre|nom)(?:\s+de(?:\s+la|\s+cette)?\s+tâche)?(?:\s+par)?|renomme(?:\s+cette|\s+la)?\s+tâche(?:\s+en)?|change\s+(?:le\s+)?nom\s+(?:de\s+)?(?:cette\s+)?tâche(?:\s+en|\s+par)?)(?:\s*:|\s+)?(.+)$/i
+  );
+  if (!match?.[1]) return null;
+
+  return {
+    intent: "modify_task",
+    language: /[àâäéèêëîïôöùûüÿçœ]/i.test(normalizedInput) ? "fr" : "en",
+    confidence: 1,
+    newTaskTitle: match[1].trim(),
+  };
+}
