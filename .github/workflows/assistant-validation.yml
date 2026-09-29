@@ -70,9 +70,11 @@ jobs:
         run: npm ci
       - name: Run live intent generalization evaluation
         if: ${{ env.GROQ_API_KEY != '' }}
+        continue-on-error: true
         run: npm run test:generalization
       - name: Run live entity extraction evaluation
         if: ${{ env.GROQ_API_KEY != '' }}
+        continue-on-error: true
         run: npm run test:entities
       - name: Check evaluation regression gate
         if: ${{ always() && env.GROQ_API_KEY != '' }}
