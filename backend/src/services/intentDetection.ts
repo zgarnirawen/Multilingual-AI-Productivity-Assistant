@@ -1,5 +1,6 @@
 import Groq from "groq-sdk";
 import { withModelFallback } from "./modelFallback.js";
+import { detectDeterministicModifyTaskTitle } from "./deterministicIntentClassifier.js";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const INTENT_CONFIDENCE_THRESHOLD = 0.6;
@@ -86,21 +87,6 @@ const tools: Groq.Chat.Completions.ChatCompletionTool[] = [{
     },
   },
 }];
-
-export function detectDeterministicModifyTaskTitle(inputText: string): IntentResult | null {
-  const normalizedInput = inputText.trim().replace(/\\s+/g, " ");
-  const match = normalizedInput.match(
-    /^(?:mets?(?:\\s+plutôt)?\\s+comme\\s+titre|remplace\\s+(?:le\\s+)?(?:titre|nom)(?:\\s+de(?:\\s+la|\\s+cette)?\\s+tâche)?(?:\\s+par)?|renomme(?:\\s+cette|\\s+la)?\\s+tâche(?:\\s+en)?|change\\s+(?:le\\s+)?nom\\s+(?:de\\s+)?(?:cette\\s+)?tâche(?:\\s+en|\\s+par)?)(?:\\s*:|\\s+)?(.+)$/i
-  );
-  if (!match?.[1]) return null;
-
-  return {
-    intent: "modify_task",
-    language: /[àâäéèêëîïôöùûüÿçœ]/i.test(normalizedInput) ? "fr" : "en",
-    confidence: 1,
-    newTaskTitle: match[1].trim(),
-  };
-}
 
 export async function detectIntent(inputText: string): Promise<IntentResult> {
   const deterministicResult = detectDeterministicModifyTaskTitle(inputText);
