@@ -17,8 +17,6 @@ function isTransient(error: unknown): boolean {
   if (status !== undefined) {
     return status === 408 || status === 409 || status === 425 || (status >= 500 && status <= 599);
   }
-
-  // Only retry known network/transport failures when no HTTP status is available.
   const code = errorCode(error);
   return code === "ECONNRESET" || code === "ECONNREFUSED" || code === "ETIMEDOUT" || code === "EAI_AGAIN";
 }
@@ -31,6 +29,7 @@ export async function withModelFallback<T>(
 ): Promise<T> {
   const configured = [...new Set(models.map((model) => model.trim()).filter(Boolean))];
   if (!configured.length) throw new Error("No inference model is configured.");
+
   let lastError: unknown;
   for (const model of configured) {
     for (let retry = 0; retry < 2; retry++) {
@@ -40,13 +39,16 @@ export async function withModelFallback<T>(
         lastError = error;
         const status = statusCode(error);
 
-        // Rate limits advance immediately to the next configured model.
         if (status === 429) break;
+        if (!isTransient(error)) {
+          throw error;
+        }
+        if (retry === 1) break;
 
-        if (!isTransient(error) || retry === 1) break;
         await wait(250 * (retry + 1));
       }
     }
   }
+
   throw lastError instanceof Error ? lastError : new Error("All configured inference models failed.");
 }
