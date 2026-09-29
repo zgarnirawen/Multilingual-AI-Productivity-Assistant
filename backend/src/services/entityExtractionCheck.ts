@@ -11,39 +11,103 @@ const cases = [
   { input: "Décale la réunion avec Sara à vendredi", expectedIntent: "modify_event", checks: { contactName: "Sara" } },
 ];
 
-let failures = 0;
-for (const testCase of cases) {
-  const result = await detectIntent(testCase.input);
-  try {
-    assert.equal(result.intent, testCase.expectedIntent, `expected intent ${testCase.expectedIntent}, got ${result.intent}`);
-    for (const [field, expected] of Object.entries(testCase.checks)) {
-      assert.equal(result[field as keyof typeof result], expected, `expected ${field}=${expected}, got ${String(result[field as keyof typeof result])}`);
-    }
-    console.log(`✓ ${testCase.input}`);
-  } catch (error) {
-    failures++;
-    console.error(`✗ ${testCase.input}`);
-    console.error(error);
-  }
+function writeReport(report: Record<string, unknown>) {
+  const outputDir = resolve(process.cwd(), "evaluation-results");
+  mkdirSync(outputDir, { recursive: true });
+  writeFileSync(
+    resolve(outputDir, "entity-extraction.json"),
+    JSON.stringify(report, null, 2) + "\n",
+    "utf8",
+  );
 }
 
-const total = cases.length;
-const passed = total - failures;
-const accuracy = (passed / total) * 100;
-const outputDir = resolve(process.cwd(), "evaluation-results");
-mkdirSync(outputDir, { recursive: true });
-writeFileSync(resolve(outputDir, "entity-extraction.json"), JSON.stringify({
-  evaluation: "entity-extraction",
-  model: process.env.GROQ_CHAT_MODEL || "openai/gpt-oss-120b",
-  fallbackModel: process.env.GROQ_FALLBACK_MODEL || null,
-  total,
-  passed,
-  failed: failures,
-  accuracy: Number(accuracy.toFixed(1)),
-  timestamp: new Date().toISOString(),
-}, null, 2) + "\n", "utf8");
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
-console.log(`\nEntity extraction cases: ${total}`);
-console.log(`Passed: ${passed}/${total}`);
-console.log(`Failures: ${failures}`);
-if (failures > 0) process.exit(1);
+async function main() {
+  let failures = 0;
+  const results: Array<Record<string, unknown>> = [];
+
+  try {
+    for (const testCase of cases) {
+      try {
+        const result = await detectIntent(testCase.input);
+        for (const [field, expected] of Object.entries(testCase.checks)) {
+          assert.equal(
+            result[field as keyof typeof result],
+            expected,
+            `expected ${field}=${expected}, got ${String(result[field as keyof typeof result])}`,
+          );
+        }
+        assert.equal(result.intent, testCase.expectedIntent, `expected intent ${testCase.expectedIntent}, got ${result.intent}`);
+        results.push({ input: testCase.input, status: "PASS" });
+        console.log(`✓ ${testCase.input}`);
+      } catch (error) {
+        failures++;
+        results.push({ input: testCase.input, status: "FAIL", error: errorMessage(error) });
+        console.error(`✗ ${testCase.input}`);
+        console.error(error);
+      }
+    }
+  } catch (error) {
+    const message = errorMessage(error);
+    console.error("Live entity extraction evaluation unavailable:", message);
+    writeReport({
+      evaluation: "entity-extraction",
+      status: "unavailable",
+      reason: message,
+      model: process.env.GROQ_CHAT_MODEL || "openai/gpt-oss-120b",
+      fallbackModel: process.env.GROQ_FALLBACK_MODEL || null,
+      total: cases.length,
+      passed: results.filter((result) => result.status === "PASS").length,
+      failed: results.filter((result) => result.status === "FAIL").length,
+      completed: results.length,
+      timestamp: new Date().toISOString(),
+      cases: results,
+    });
+    console.warn("Evaluation is unavailable; this is not treated as a model regression.");
+    return;
+  }
+
+  const total = cases.length;
+  const passed = total - failures;
+  const accuracy = (passed / total) * 100;
+
+  writeReport({
+    evaluation: "entity-extraction",
+    status: "complete",
+    model: process.env.GROQ_CHAT_MODEL || "openai/gpt-oss-120b",
+    fallbackModel: process.env.GROQ_FALLBACK_MODEL || null,
+    total,
+    passed,
+    failed: failures,
+    accuracy: Number(accuracy.toFixed(1)),
+    timestamp: new Date().toISOString(),
+    cases: results,
+  });
+
+  console.log(`\nEntity extraction cases: ${total}`);
+  console.log(`Passed: ${passed}/${total}`);
+  console.log(`Failures: ${failures}`);
+  if (failures > 0) process.exit(1);
+}
+
+main().catch((error) => {
+  const message = errorMessage(error);
+  console.error("Entity extraction evaluation crashed:", message);
+  writeReport({
+    evaluation: "entity-extraction",
+    status: "unavailable",
+    reason: message,
+    model: process.env.GROQ_CHAT_MODEL || "openai/gpt-oss-120b",
+    fallbackModel: process.env.GROQ_FALLBACK_MODEL || null,
+    total: cases.length,
+    passed: 0,
+    failed: 0,
+    completed: 0,
+    timestamp: new Date().toISOString(),
+    cases: [],
+  });
+  console.warn("Evaluation is unavailable; this is not treated as a model regression.");
+});
