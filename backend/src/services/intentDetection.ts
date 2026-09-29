@@ -1,4 +1,5 @@
 import Groq from "groq-sdk";
+import { withModelFallback } from "./modelFallback.js";
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const INTENT_CONFIDENCE_THRESHOLD = 0.6;
@@ -81,8 +82,10 @@ const tools: Groq.Chat.Completions.ChatCompletionTool[] = [{
 
 export async function detectIntent(inputText: string): Promise<IntentResult> {
   const today = new Date().toISOString().split("T")[0];
-  const completion = await groq.chat.completions.create({
-    model: process.env.GROQ_CHAT_MODEL || "openai/gpt-oss-120b",
+  const primaryModel = process.env.GROQ_CHAT_MODEL || "openai/gpt-oss-120b";
+  const models = [primaryModel, process.env.GROQ_FALLBACK_MODEL || ""];
+  const completion = await withModelFallback(models, (model) => groq.chat.completions.create({
+    model,
     messages: [
       { role: "system", content: `You are an intent classifier for a productivity assistant. Today's date is ${today} (${new Date().toLocaleDateString('fr-FR', { weekday: 'long' })}).
 
@@ -95,7 +98,7 @@ Examples: "n'oublie pas d'appeler sam" -> create_task + contactName="sam"; "rdv 
     ],
     tools,
     tool_choice: { type: "function", function: { name: "classify_intent" } },
-  });
+  }));
   const toolCall = completion.choices[0]?.message?.tool_calls?.[0];
   if (!toolCall) return { intent: "unrecognized", confidence: 0 };
   try {
