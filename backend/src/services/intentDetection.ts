@@ -87,22 +87,24 @@ const tools: Groq.Chat.Completions.ChatCompletionTool[] = [{
   },
 }];
 
-export async function detectIntent(inputText: string): Promise<IntentResult> {
-  // Deterministic routing for unambiguous title-edit commands. These phrases
-  // explicitly describe changing an existing task title, so they should not
-  // depend on live LLM sampling to choose between create_task/modify_task.
+export function detectDeterministicModifyTaskTitle(inputText: string): IntentResult | null {
   const normalizedInput = inputText.trim().replace(/\\s+/g, " ");
-  const modifyTaskTitleMatch = normalizedInput.match(
+  const match = normalizedInput.match(
     /^(?:mets?(?:\\s+plutôt)?\\s+comme\\s+titre|remplace\\s+(?:le\\s+)?(?:titre|nom)(?:\\s+de(?:\\s+la|\\s+cette)?\\s+tâche)?(?:\\s+par)?|renomme(?:\\s+cette|\\s+la)?\\s+tâche(?:\\s+en)?|change\\s+(?:le\\s+)?nom\\s+(?:de\\s+)?(?:cette\\s+)?tâche(?:\\s+en|\\s+par)?)(?:\\s*:|\\s+)?(.+)$/i
   );
-  if (modifyTaskTitleMatch?.[1]) {
-    return {
-      intent: "modify_task",
-      language: /[àâäéèêëîïôöùûüÿçœ]/i.test(normalizedInput) ? "fr" : "en",
-      confidence: 1,
-      newTaskTitle: modifyTaskTitleMatch[1].trim(),
-    };
-  }
+  if (!match?.[1]) return null;
+
+  return {
+    intent: "modify_task",
+    language: /[àâäéèêëîïôöùûüÿçœ]/i.test(normalizedInput) ? "fr" : "en",
+    confidence: 1,
+    newTaskTitle: match[1].trim(),
+  };
+}
+
+export async function detectIntent(inputText: string): Promise<IntentResult> {
+  const deterministicResult = detectDeterministicModifyTaskTitle(inputText);
+  if (deterministicResult) return deterministicResult;
 
   const today = new Date().toISOString().split("T")[0];
   const primaryModel = process.env.GROQ_CHAT_MODEL || "openai/gpt-oss-120b";
