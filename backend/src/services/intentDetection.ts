@@ -99,7 +99,7 @@ export async function detectIntent(inputText: string): Promise<IntentResult> {
 Be flexible with casual speech, typos, abbreviations and voice-to-text errors. Extract action entities whenever explicitly present. Never invent a contact, duration, date, or name. Normalize durations to minutes (30 minutes=30, 1 hour=60, 1h30=90). For contacts, return only the person's stated name, never a phone number or other contact data.
 
 Supported intents: greeting, farewell, thanks, small_talk, capabilities, create_task, create_event, modify_task, delete_task, modify_event, delete_event, summarize_period, unrecognized.
-For valid informal requests, use the closest intent and confidence >=0.7 when meaning is reasonably clear. Use <0.6 only when genuinely unclear. Always call classify_intent.
+For valid informal requests, use the closest intent and confidence >=0.7 when meaning is reasonably clear. Use <0.6 only when genuinely unclear. Always call classify_intent. For modify_task, changing an existing task title is not creating a new task: phrases such as "renomme cette tâche", "remplace le titre par", "mets comme titre", "mets plutôt comme titre", "change le nom de cette tâche", or "remplace le nom de la tâche" mean modify_task. When "comme titre" refers to an existing task, classify modify_task.
 Examples: "n'oublie pas d'appeler sam" -> create_task + contactName="sam"; "rdv avec Sara demain pendant 1h30" -> create_event + contactName="Sara" + durationMinutes=90; "réunion avec Nadia pour 45 minutes" -> create_event + contactName="Nadia" + durationMinutes=45; "qu'est-ce que j'ai cette semaine" -> summarize_period; "il fait combien dehors" -> unrecognized.` },
       { role: "user", content: inputText },
     ],
