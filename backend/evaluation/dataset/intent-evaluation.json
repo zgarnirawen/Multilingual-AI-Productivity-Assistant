@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "name": "intent-evaluation",
+  "description": "Frozen multilingual evaluation dataset for intent classification and action-entity extraction. Cases are kept separate from implementation tests so the same dataset can be reused by local evaluation, CI metrics, and model comparison.",
+  "intents": [
+    "create_task",
+    "create_event",
+    "modify_task",
+    "delete_task",
+    "modify_event",
+    "delete_event",
+    "summarize_period",
+    "greeting",
+    "farewell",
+    "thanks",
+    "small_talk",
+    "capabilities",
+    "unrecognized"
+  ],
+  "cases": [
+    {"id":"create-task-fr-01","language":"fr","input":"rappelle-moi de vérifier le serveur ce soir","expectedIntent":"create_task","expectedEntities":{"taskTitle":"vérifier le serveur"}},
+    {"id":"create-task-fr-02","language":"fr","input":"ajoute une tâche pour envoyer le compte rendu à Lina","expectedIntent":"create_task","expectedEntities":{"taskTitle":"envoyer le compte rendu à Lina","contactName":"Lina"}},
+    {"id":"create-task-fr-03","language":"fr","input":"il ne faut pas que j'oublie de payer la facture","expectedIntent":"create_task","expectedEntities":{"taskTitle":"payer la facture"}},
+    {"id":"create-task-en-04","language":"en","input":"remind me to review the deployment logs tomorrow","expectedIntent":"create_task","expectedEntities":{"taskTitle":"review the deployment logs tomorrow"}},
+    {"id":"create-task-en-05","language":"en","input":"add a task to call Nadia","expectedIntent":"create_task","expectedEntities":{"taskTitle":"call Nadia","contactName":"Nadia"}},
+
+    {"id":"create-event-fr-01","language":"fr","input":"planifie un déjeuner avec Yassine demain à midi","expectedIntent":"create_event","expectedEntities":{"contactName":"Yassine"}},
+    {"id":"create-event-fr-02","language":"fr","input":"bloque une réunion projet lundi pendant 45 minutes","expectedIntent":"create_event","expectedEntities":{"eventTitle":"réunion projet","durationMinutes":45}},
+    {"id":"create-event-fr-03","language":"fr","input":"mets un rendez-vous avec Mariem jeudi matin","expectedIntent":"create_event","expectedEntities":{"contactName":"Mariem"}},
+    {"id":"create-event-en-04","language":"en","input":"schedule a 30 minute meeting with Alex tomorrow","expectedIntent":"create_event","expectedEntities":{"contactName":"Alex","durationMinutes":30}},
+    {"id":"create-event-en-05","language":"en","input":"book a project review for Friday afternoon","expectedIntent":"create_event","expectedEntities":{"eventTitle":"project review"}},
+
+    {"id":"modify-task-fr-01","language":"fr","input":"change le nom de cette tâche en préparer le rapport","expectedIntent":"modify_task","expectedEntities":{"newTaskTitle":"préparer le rapport"}},
+    {"id":"modify-task-fr-02","language":"fr","input":"remplace le titre par vérifier les sauvegardes","expectedIntent":"modify_task","expectedEntities":{"newTaskTitle":"vérifier les sauvegardes"}},
+    {"id":"modify-task-fr-03","language":"fr","input":"renomme la tâche appeler le fournisseur","expectedIntent":"modify_task","expectedEntities":{"newTaskTitle":"appeler le fournisseur"}},
+    {"id":"modify-task-en-04","language":"en","input":"rename this task to finish the presentation","expectedIntent":"modify_task","expectedEntities":{"newTaskTitle":"finish the presentation"}},
+    {"id":"modify-task-en-05","language":"en","input":"change the task name to review the final report","expectedIntent":"modify_task","expectedEntities":{"newTaskTitle":"review the final report"}},
+
+    {"id":"delete-task-fr-01","language":"fr","input":"supprime le rappel pour envoyer le dossier","expectedIntent":"delete_task","expectedEntities":{"targetTitleQuery":"envoyer le dossier"}},
+    {"id":"delete-task-fr-02","language":"fr","input":"enlève la tâche sur les sauvegardes","expectedIntent":"delete_task","expectedEntities":{"targetTitleQuery":"sauvegardes"}},
+    {"id":"delete-task-fr-03","language":"fr","input":"je n'ai plus besoin de la tâche concernant le rapport","expectedIntent":"delete_task","expectedEntities":{"targetTitleQuery":"rapport"}},
+    {"id":"delete-task-en-04","language":"en","input":"delete the task about the invoice","expectedIntent":"delete_task","expectedEntities":{"targetTitleQuery":"invoice"}},
+    {"id":"delete-task-en-05","language":"en","input":"remove my reminder to call Karim","expectedIntent":"delete_task","expectedEntities":{"targetTitleQuery":"call Karim","contactName":"Karim"}},
+
+    {"id":"modify-event-fr-01","language":"fr","input":"déplace mon rendez-vous avec Nour à lundi","expectedIntent":"modify_event","expectedEntities":{"contactName":"Nour"}},
+    {"id":"modify-event-fr-02","language":"fr","input":"décale la réunion de demain de trente minutes","expectedIntent":"modify_event","expectedEntities":{"durationMinutes":30}},
+    {"id":"modify-event-fr-03","language":"fr","input":"change l'heure du rendez-vous avec Sami","expectedIntent":"modify_event","expectedEntities":{"contactName":"Sami"}},
+    {"id":"modify-event-en-04","language":"en","input":"move my meeting with Emma to Friday","expectedIntent":"modify_event","expectedEntities":{"contactName":"Emma"}},
+    {"id":"modify-event-en-05","language":"en","input":"reschedule the client call for two hours later","expectedIntent":"modify_event","expectedEntities":{"durationMinutes":120}},
+
+    {"id":"delete-event-fr-01","language":"fr","input":"annule mon rendez-vous avec Hatem","expectedIntent":"delete_event","expectedEntities":{"contactName":"Hatem"}},
+    {"id":"delete-event-fr-02","language":"fr","input":"supprime la réunion de lundi","expectedIntent":"delete_event"},
+    {"id":"delete-event-fr-03","language":"fr","input":"je veux retirer le déjeuner prévu avec Amel","expectedIntent":"delete_event","expectedEntities":{"contactName":"Amel"}},
+    {"id":"delete-event-en-04","language":"en","input":"cancel my appointment with John","expectedIntent":"delete_event","expectedEntities":{"contactName":"John"}},
+    {"id":"delete-event-en-05","language":"en","input":"remove the meeting scheduled for tomorrow","expectedIntent":"delete_event"},
+
+    {"id":"summary-fr-01","language":"fr","input":"montre-moi mon planning de demain","expectedIntent":"summarize_period"},
+    {"id":"summary-fr-02","language":"fr","input":"résume mes rendez-vous de cette semaine","expectedIntent":"summarize_period","expectedEntities":{"summaryScope":"events"}},
+    {"id":"summary-fr-03","language":"fr","input":"quelles tâches me restent cette semaine ?","expectedIntent":"summarize_period","expectedEntities":{"summaryScope":"tasks"}},
+    {"id":"summary-en-04","language":"en","input":"what do I have scheduled for tomorrow?","expectedIntent":"summarize_period"},
+    {"id":"summary-en-05","language":"en","input":"give me an overview of my tasks and events this week","expectedIntent":"summarize_period","expectedEntities":{"summaryScope":"both"}},
+
+    {"id":"greeting-fr-01","language":"fr","input":"salut assistant","expectedIntent":"greeting"},
+    {"id":"greeting-fr-02","language":"fr","input":"bonjour !","expectedIntent":"greeting"},
+    {"id":"greeting-fr-03","language":"fr","input":"coucou, je suis là","expectedIntent":"greeting"},
+    {"id":"greeting-en-04","language":"en","input":"good morning assistant","expectedIntent":"greeting"},
+    {"id":"greeting-en-05","language":"en","input":"hi there","expectedIntent":"greeting"},
+
+    {"id":"farewell-fr-01","language":"fr","input":"bonne nuit, à demain","expectedIntent":"farewell"},
+    {"id":"farewell-fr-02","language":"fr","input":"je te laisse, à bientôt","expectedIntent":"farewell"},
+    {"id":"farewell-fr-03","language":"fr","input":"bon, je dois partir","expectedIntent":"farewell"},
+    {"id":"farewell-en-04","language":"en","input":"talk to you later","expectedIntent":"farewell"},
+    {"id":"farewell-en-05","language":"en","input":"see you tomorrow","expectedIntent":"farewell"},
+
+    {"id":"thanks-fr-01","language":"fr","input":"merci beaucoup","expectedIntent":"thanks"},
+    {"id":"thanks-fr-02","language":"fr","input":"c'est gentil, merci","expectedIntent":"thanks"},
+    {"id":"thanks-fr-03","language":"fr","input":"merci pour le coup de main","expectedIntent":"thanks"},
+    {"id":"thanks-en-04","language":"en","input":"thanks, that helped","expectedIntent":"thanks"},
+    {"id":"thanks-en-05","language":"en","input":"I appreciate your help","expectedIntent":"thanks"},
+
+    {"id":"small-talk-fr-01","language":"fr","input":"ça va aujourd'hui ?","expectedIntent":"small_talk"},
+    {"id":"small-talk-fr-02","language":"fr","input":"comment se passe ta journée ?","expectedIntent":"small_talk"},
+    {"id":"small-talk-fr-03","language":"fr","input":"tu fais quoi quand je ne te demande rien ?","expectedIntent":"small_talk"},
+    {"id":"small-talk-en-04","language":"en","input":"how are you doing today?","expectedIntent":"small_talk"},
+    {"id":"small-talk-en-05","language":"en","input":"what's up?","expectedIntent":"small_talk"},
+
+    {"id":"capabilities-fr-01","language":"fr","input":"quels types de tâches peux-tu créer ?","expectedIntent":"capabilities"},
+    {"id":"capabilities-fr-02","language":"fr","input":"est-ce que tu peux gérer mon agenda ?","expectedIntent":"capabilities"},
+    {"id":"capabilities-fr-03","language":"fr","input":"quelles actions puis-je te demander ?","expectedIntent":"capabilities"},
+    {"id":"capabilities-en-04","language":"en","input":"what can you do with my calendar?","expectedIntent":"capabilities"},
+    {"id":"capabilities-en-05","language":"en","input":"which productivity actions do you support?","expectedIntent":"capabilities"},
+
+    {"id":"unrecognized-fr-01","language":"fr","input":"combien fait dix-sept fois huit ?","expectedIntent":"unrecognized"},
+    {"id":"unrecognized-fr-02","language":"fr","input":"donne-moi une recette de couscous","expectedIntent":"unrecognized"},
+    {"id":"unrecognized-fr-03","language":"fr","input":"quelle est la capitale du Japon ?","expectedIntent":"unrecognized"},
+    {"id":"unrecognized-en-04","language":"en","input":"write me a poem about the ocean","expectedIntent":"unrecognized"},
+    {"id":"unrecognized-en-05","language":"en","input":"what is the weather in London?","expectedIntent":"unrecognized"}
+  ]
+}
