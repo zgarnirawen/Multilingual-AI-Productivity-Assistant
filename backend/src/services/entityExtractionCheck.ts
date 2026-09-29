@@ -1,4 +1,6 @@
 ﻿import assert from "node:assert/strict";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { detectIntent } from "./intentDetection.js";
 
 const cases = [
@@ -68,7 +70,29 @@ for (const testCase of cases) {
   }
 }
 
-console.log(`\nEntity extraction cases: ${cases.length}`);
+const total = cases.length;
+const passed = total - failures;
+const accuracy = (passed / total) * 100;
+const outputDir = resolve(process.cwd(), "evaluation-results");
+
+mkdirSync(outputDir, { recursive: true });
+writeFileSync(
+  resolve(outputDir, "entity-extraction.json"),
+  JSON.stringify({
+    evaluation: "entity-extraction",
+    model: process.env.GROQ_CHAT_MODEL || "openai/gpt-oss-120b",
+    fallbackModel: process.env.GROQ_FALLBACK_MODEL || null,
+    total,
+    passed,
+    failed: failures,
+    accuracy: Number(accuracy.toFixed(1)),
+    timestamp: new Date().toISOString(),
+  }, null, 2) + "\n",
+  "utf8",
+);
+
+console.log(`\nEntity extraction cases: ${total}`);
+console.log(`Passed: ${passed}/${total}`);
 console.log(`Failures: ${failures}`);
 
 if (failures > 0) {
