@@ -267,7 +267,7 @@ app.post("/assistant/confirm-action", async (req, res) => {
 
     if (intent === "create_task") {
       const title = details?.taskTitle || (lang === "fr" ? "Tâche sans titre" : "Untitled task");
-      createdItem = await todoConnector.createTask({ title });
+      createdItem = await todoConnector.createTask({ title, dueDate: details.taskDateTime });
     } else if (intent === "create_event") {
       const title = details?.eventTitle || (lang === "fr" ? "Événement sans titre" : "Untitled event");
       createdItem = await agendaConnector.createEvent({ title, dateTime: details.eventDateTime || new Date().toISOString(), duration: details.durationMinutes });
@@ -280,7 +280,19 @@ app.post("/assistant/confirm-action", async (req, res) => {
     } else if (intent === "modify_task") {
       createdItem = await todoConnector.updateTask(targetId, { title: details.newTaskTitle || details.taskTitle });
     } else if (intent === "modify_event") {
-      createdItem = await agendaConnector.updateEvent(targetId, { title: details.newEventTitle, dateTime: details.newEventDateTime, duration: details.durationMinutes });
+      const targetEvent = await agendaConnector.getEvent(targetId);
+      if (!targetEvent) {
+        return res.status(404).json({ error: "Event not found" });
+      }
+      const shiftedDateTime = details.newEventDateTime ||
+        (details.timeOffsetMinutes !== undefined
+          ? new Date(new Date(targetEvent.dateTime).getTime() + details.timeOffsetMinutes * 60000).toISOString()
+          : undefined);
+      createdItem = await agendaConnector.updateEvent(targetId, {
+        title: details.newEventTitle,
+        dateTime: shiftedDateTime,
+        duration: details.durationMinutes,
+      });
     } else {
       return res.status(400).json({ error: "Unsupported intent for confirmation" });
     }

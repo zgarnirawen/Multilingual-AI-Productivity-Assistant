@@ -78,6 +78,10 @@ jobs:
         if: ${{ env.GROQ_API_KEY != '' }}
         continue-on-error: true
         run: npm run test:entities
+      - name: Run frozen dataset evaluation
+        if: ${{ env.GROQ_API_KEY != '' }}
+        continue-on-error: true
+        run: npm run test:dataset-evaluation
       - name: Check evaluation regression gate
         if: ${{ always() && env.GROQ_API_KEY != '' }}
         run: npm run test:evaluation-gate
