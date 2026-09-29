@@ -280,10 +280,19 @@ app.post("/assistant/confirm-action", async (req, res) => {
     } else if (intent === "modify_task") {
       createdItem = await todoConnector.updateTask(targetId, { title: details.newTaskTitle || details.taskTitle });
     } else if (intent === "modify_event") {
-      const shiftedDateTime = details.newEventDateTime || (details.timeOffsetMinutes !== undefined && modifyDeleteInfo?.target?.dateTime
-        ? new Date(new Date(modifyDeleteInfo.target.dateTime).getTime() + details.timeOffsetMinutes * 60000).toISOString()
-        : undefined);
-      createdItem = await agendaConnector.updateEvent(targetId, { title: details.newEventTitle, dateTime: shiftedDateTime, duration: details.durationMinutes });
+      const targetEvent = await agendaConnector.getEvent(targetId);
+      if (!targetEvent) {
+        return res.status(404).json({ error: "Event not found" });
+      }
+      const shiftedDateTime = details.newEventDateTime ||
+        (details.timeOffsetMinutes !== undefined
+          ? new Date(new Date(targetEvent.dateTime).getTime() + details.timeOffsetMinutes * 60000).toISOString()
+          : undefined);
+      createdItem = await agendaConnector.updateEvent(targetId, {
+        title: details.newEventTitle,
+        dateTime: shiftedDateTime,
+        duration: details.durationMinutes,
+      });
     } else {
       return res.status(400).json({ error: "Unsupported intent for confirmation" });
     }
