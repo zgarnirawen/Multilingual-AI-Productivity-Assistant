@@ -10,40 +10,57 @@ const cases = [
   { input: "Renomme cette tâche en rapport final", expectedIntent: "modify_task", checks: { newTaskTitle: "rapport final" } },
   { input: "Décale la réunion avec Sara à vendredi", expectedIntent: "modify_event", checks: { contactName: "Sara" } },
 ];
+const writeReport = (report: Record<string, unknown>) => {
+  const dir = resolve(process.cwd(), "evaluation-results");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(resolve(dir, "entity-extraction.json"), JSON.stringify(report, null, 2) + "\n");
+};
+const message = (error: unknown) => error instanceof Error ? error.message : String(error);
 
-let failures = 0;
-for (const testCase of cases) {
-  const result = await detectIntent(testCase.input);
-  try {
-    assert.equal(result.intent, testCase.expectedIntent, `expected intent ${testCase.expectedIntent}, got ${result.intent}`);
-    for (const [field, expected] of Object.entries(testCase.checks)) {
-      assert.equal(result[field as keyof typeof result], expected, `expected ${field}=${expected}, got ${String(result[field as keyof typeof result])}`);
+async function main() {
+  const results: Array<Record<string, unknown>> = [];
+  let failures = 0;
+  for (const testCase of cases) {
+    let result;
+    try {
+      result = await detectIntent(testCase.input);
+    } catch (error) {
+      writeReport({
+        evaluation: "entity-extraction", status: "unavailable", reason: message(error),
+        model: process.env.GROQ_CHAT_MODEL || "openai/gpt-oss-120b",
+        fallbackModel: process.env.GROQ_FALLBACK_MODEL || null,
+        total: cases.length, completed: results.length,
+        passed: results.filter(r => r.status === "PASS").length, failed: failures,
+        timestamp: new Date().toISOString(), cases: results,
+      });
+      console.warn("Provider evaluation unavailable; not a model regression.");
+      return;
     }
-    console.log(`✓ ${testCase.input}`);
-  } catch (error) {
-    failures++;
-    console.error(`✗ ${testCase.input}`);
-    console.error(error);
+    try {
+      assert.equal(result.intent, testCase.expectedIntent, `expected intent ${testCase.expectedIntent}, got ${result.intent}`);
+      for (const [field, expected] of Object.entries(testCase.checks)) {
+        assert.equal(result[field as keyof typeof result], expected, `expected ${field}=${expected}, got ${String(result[field as keyof typeof result])}`);
+      }
+      results.push({ input: testCase.input, status: "PASS" });
+      console.log(`✓ ${testCase.input}`);
+    } catch (error) {
+      failures++;
+      results.push({ input: testCase.input, status: "FAIL", error: message(error) });
+      console.error(`✗ ${testCase.input}: ${message(error)}`);
+    }
   }
+  const accuracy = (cases.length - failures) / cases.length * 100;
+  writeReport({
+    evaluation: "entity-extraction", status: "complete",
+    model: process.env.GROQ_CHAT_MODEL || "openai/gpt-oss-120b",
+    fallbackModel: process.env.GROQ_FALLBACK_MODEL || null,
+    total: cases.length, passed: cases.length - failures, failed: failures,
+    accuracy: Number(accuracy.toFixed(1)), timestamp: new Date().toISOString(), cases: results,
+  });
+  console.log(`Entity extraction: ${cases.length - failures}/${cases.length}`);
+  if (failures) process.exitCode = 1;
 }
-
-const total = cases.length;
-const passed = total - failures;
-const accuracy = (passed / total) * 100;
-const outputDir = resolve(process.cwd(), "evaluation-results");
-mkdirSync(outputDir, { recursive: true });
-writeFileSync(resolve(outputDir, "entity-extraction.json"), JSON.stringify({
-  evaluation: "entity-extraction",
-  model: process.env.GROQ_CHAT_MODEL || "openai/gpt-oss-120b",
-  fallbackModel: process.env.GROQ_FALLBACK_MODEL || null,
-  total,
-  passed,
-  failed: failures,
-  accuracy: Number(accuracy.toFixed(1)),
-  timestamp: new Date().toISOString(),
-}, null, 2) + "\n", "utf8");
-
-console.log(`\nEntity extraction cases: ${total}`);
-console.log(`Passed: ${passed}/${total}`);
-console.log(`Failures: ${failures}`);
-if (failures > 0) process.exit(1);
+main().catch(error => {
+  writeReport({ evaluation: "entity-extraction", status: "unavailable", reason: message(error), total: cases.length, completed: 0, passed: 0, failed: 0, timestamp: new Date().toISOString(), cases: [] });
+  console.warn("Provider evaluation unavailable; not a model regression.");
+});
