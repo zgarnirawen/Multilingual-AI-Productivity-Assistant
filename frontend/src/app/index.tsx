@@ -30,7 +30,7 @@ import ActionProposal from '@/components/ActionProposal';
 import type { ActionProposalData } from '@/components/ActionProposal';
 import QuickActionShortcuts from '@/components/QuickActionShortcuts';
 
-const API_BASE_URL = Platform.OS === 'web' ? 'http://localhost:3000' : 'http://10.224.58.5:3000';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? 'http://localhost:3000';
 
 const colors = {
   bg: '#F6F3EC',
@@ -546,7 +546,7 @@ export default function HomeScreen() {
       <View style={styles.appbar}>
         <View>
           <Text style={styles.appbarTitle}>Assistant</Text>
-          <Text style={styles.appbarSub}>A l'ecoute</Text>
+          <Text style={styles.appbarSub}>À l’écoute</Text>
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.iconBtn} onPress={toggleTts}>

@@ -92,3 +92,25 @@ jobs:
           path: backend/evaluation-results/
           if-no-files-found: error
           retention-days: 14
+
+  frontend-validation:
+    name: Frontend validation
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Setup Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Run TypeScript check
+        run: npx tsc --noEmit
+      - name: Run Expo lint
+        run: npm run lint
