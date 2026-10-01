@@ -546,7 +546,7 @@ export default function HomeScreen() {
       <View style={styles.appbar}>
         <View>
           <Text style={styles.appbarTitle}>Assistant</Text>
-          <Text style={styles.appbarSub}>A l'ecoute</Text>
+          <Text style={styles.appbarSub}>À l’écoute</Text>
         </View>
         <View style={styles.headerActions}>
           <TouchableOpacity style={styles.iconBtn} onPress={toggleTts}>
