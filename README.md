@@ -731,10 +731,6 @@ The concrete external service endpoints and credentials remain environment-speci
 
 Authentication for the surrounding application is outside the AI assistant implementation scope.
 
-### WhatsApp
-
-The backend contains a Twilio dependency, but the current project does not claim a complete production WhatsApp webhook/message-ingestion implementation. The current focus is the AI assistant workflow and productivity integrations.
-
 ### CI vs CD
 
 The GitHub Actions workflow is a **Continuous Integration and automated validation pipeline**. It is not a production Continuous Delivery/Deployment pipeline.
