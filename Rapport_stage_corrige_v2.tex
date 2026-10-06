@@ -1,0 +1,1603 @@
+% =====================================================================
+% Rapport de stage - Multilingual AI Productivity Assistant (3LM Solutions)
+% Compilation : pdflatex (Overleaf, compilateur par defaut), 2 passes.
+% Elements a verifier / completer manuellement : voir les commentaires
+% =====================================================================
+\documentclass[11pt,a4paper,openany,oneside]{report}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[french]{babel}
+\usepackage[a4paper,top=2.5cm,bottom=2.5cm,left=2.5cm,right=2.5cm]{geometry}
+\usepackage{setspace}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{booktabs,tabularx,array}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{caption}
+\usepackage{float}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,calc,shapes.geometric}
+\usepackage[hidelinks]{hyperref}
+
+\setstretch{1.1}
+\setlength{\emergencystretch}{3em}
+\setlength{\headheight}{14pt}
+\urlstyle{tt}
+\setlength{\parskip}{3pt}
+\setlist{itemsep=1pt,topsep=3pt,parsep=0pt}
+\captionsetup{font=small,labelfont=bf,skip=4pt}
+\setcounter{tocdepth}{3}
+\setcounter{secnumdepth}{3}
+
+\titleformat{\chapter}[display]{\normalfont\huge\bfseries}{\chaptertitlename\ \thechapter}{8pt}{\huge}
+\titlespacing*{\chapter}{0pt}{-20pt}{16pt}
+\titleformat{\section}{\normalfont\Large\bfseries}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalfont\large\bfseries}{\thesubsection}{0.6em}{}
+\titleformat{\subsubsection}{\normalfont\normalsize\bfseries}{\thesubsubsection}{0.6em}{}
+\titlespacing*{\section}{0pt}{12pt}{5pt}
+\titlespacing*{\subsection}{0pt}{9pt}{4pt}
+\titlespacing*{\subsubsection}{0pt}{7pt}{3pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\nouppercase{\leftmark}}
+\fancyhead[R]{\small\thepage}
+\renewcommand{\headrulewidth}{0.3pt}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\small\thepage}\renewcommand{\headrulewidth}{0pt}}
+
+\lstset{basicstyle=\ttfamily\footnotesize,frame=single,breaklines=true,columns=fullflexible,
+  xleftmargin=2pt,xrightmargin=2pt,aboveskip=4pt,belowskip=4pt,showstringspaces=false}
+
+\newcommand{\intent}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\chapintro}{\section*{Introduction}\phantomsection\addcontentsline{toc}{section}{Introduction}}
+\newcommand{\chapconcl}{\section*{Conclusion}\phantomsection\addcontentsline{toc}{section}{Conclusion}}
+% Emplacement de figure a reinserer manuellement : \figplaceholder{legende}{label}{contenu attendu}
+\newcommand{\figplaceholder}[3]{\begin{figure}[htbp]\centering
+  \fbox{\parbox{0.88\textwidth}{\centering\vspace{1.1cm}\small\textit{[Figure a reinserer : #3]}\vspace{1.1cm}}}
+  \caption{#1}\label{#2}\end{figure}}
+
+% ---- Macros diagrammes de sequence ----
+\newcommand{\seqfont}{\fontsize{7}{8}\selectfont}
+\newcommand{\seqpart}[3]{% x, libelle, profondeur de la ligne de vie
+  \draw[dashed,gray] (#1,-0.5) -- (#1,-#3);
+  \node[draw,rounded corners=2pt,fill=gray!10,text width=2.0cm,align=center,
+        inner sep=2pt,minimum height=0.9cm,font=\fontsize{7}{8}\selectfont] at (#1,0) {#2};}
+\newcommand{\seqmsg}[4]{% de, vers, y, libelle
+  \draw[-{Stealth[length=1.8mm]},thick] (#1,#3) --
+    node[above,align=center,inner sep=1pt,fill=white,font=\fontsize{7}{8}\selectfont]{#4} (#2,#3);}
+\newcommand{\seqret}[4]{% retour (pointilles)
+  \draw[-{Stealth[length=1.8mm]},thick,dashed] (#1,#3) --
+    node[above,align=center,inner sep=1pt,fill=white,font=\fontsize{7}{8}\selectfont]{#4} (#2,#3);}
+\newcommand{\seqself}[3]{% x, y, libelle (message reflexif)
+  \draw[-{Stealth[length=1.8mm]},thick] (#1,#2) -- (#1+0.6,#2) --
+    (#1+0.6,#2-0.5) -- (#1,#2-0.5);
+  \node[right,align=left,fill=white,inner sep=1pt,font=\fontsize{7}{8}\selectfont] at (#1+0.65,#2-0.25) {#3};}
+% ---- Acteur UML (silhouette) ----
+\newcommand{\ucactor}[4]{% nom, x, y, libelle
+  \begin{scope}[shift={(#2,#3)}]
+    \draw (0,0.45) circle (0.15);
+    \draw (0,0.3)--(0,-0.1) (-0.25,0.2)--(0.25,0.2) (0,-0.1)--(-0.2,-0.5) (0,-0.1)--(0.2,-0.5);
+    \node[below,align=center,font=\footnotesize] at (0,-0.5) {#4};
+    \coordinate (#1) at (0,0);
+  \end{scope}}
+
+\begin{document}
+
+% ------------------------------ PAGE DE GARDE ------------------------------
+% Logos a placer dans le meme dossier : "LOGO ENICAR.jpg" et "3LM.jpeg"
+% (a defaut, un cadre vide est affiche a leur place)
+\newcommand{\logobox}[3]{%
+  \IfFileExists{#1}%
+    {\includegraphics[height=#3,width=6cm,keepaspectratio]{#1}}%
+    {\fbox{\parbox[c][#3][c]{5cm}{\centering\small\itshape #2}}}%
+}
+\newgeometry{a4paper,margin=2.2cm}
+\begin{titlepage}
+\thispagestyle{empty}
+\begingroup
+\setstretch{1}\setlength{\parskip}{0pt}\fontfamily{ppl}\selectfont
+\begin{center}
+{\small\scshape R\'epublique Tunisienne}\\[2pt]
+{\small\scshape Minist\`ere de l'Enseignement Sup\'erieur,\\
+de la Recherche Scientifique et de la Technologie}\\[2pt]
+{\normalsize\bfseries\scshape \'Ecole Nationale d'Ing\'enieurs de Carthage}
+\vspace{0.5cm}
+
+\logobox{LOGO ENICAR.jpg}{Logo ENICarthage}{2.4cm}
+\vspace{0.4cm}
+
+\rule{0.7\textwidth}{0.8pt}
+\vspace{1.2cm}
+
+{\fontsize{30}{36}\selectfont\bfseries RAPPORT DE STAGE}\\[0.4cm]
+{\large\itshape Stage d'\'et\'e -- Juin 2026}
+\vspace{0.6cm}
+
+{\large\bfseries Sp\'ecialit\'e : G\'enie Informatique}
+\vspace{1cm}
+
+\fbox{\parbox{0.84\textwidth}{\centering
+  \vspace{0.5cm}
+  {\small\scshape Intitul\'e du projet}\\[0.3cm]
+  {\Large\bfseries D\'eveloppement d'un assistant intelligent multilingue
+  bas\'e sur les LLM pour la gestion automatis\'ee des t\^aches et des
+  \'ev\'enements}
+  \vspace{0.5cm}
+}}
+\vspace{1.2cm}
+
+\renewcommand{\arraystretch}{1.9}
+\begin{tabular}{>{\raggedleft\arraybackslash\bfseries}p{0.34\textwidth} >{\raggedright\arraybackslash}p{0.42\textwidth}}
+  \'Elabor\'e par :         & Rawen \textsc{Zgarni} \\
+  R\'ealis\'e au sein de :  & 3LM Solutions \\
+  Encadrante entreprise :   & Mme Souhir \textsc{Saidi} \\
+\end{tabular}
+\vspace{0.8cm}
+
+\logobox{3LM.jpeg}{Logo 3LM Solutions}{2.4cm}
+
+\vfill
+\rule{0.5\textwidth}{0.8pt}\\[0.3cm]
+{\large\bfseries Ann\'ee universitaire 2026--2027}
+\vspace{0.4cm}
+\end{center}
+\endgroup
+\end{titlepage}
+\restoregeometry
+
+\pagenumbering{roman}
+\setcounter{page}{1}
+
+% ------------------------------ REMERCIEMENTS ------------------------------
+\chapter*{Remerciements}
+\phantomsection\addcontentsline{toc}{chapter}{Remerciements}
+Je tiens \`a remercier chaleureusement Mme Souhir Saidi, qui a encadr\'e ce stage au sein de 3LM Solutions, pour son suivi r\'egulier, ses conseils et la confiance qu'elle m'a accord\'ee tout au long du projet.
+
+Mes remerciements vont \'egalement \`a l'\'equipe de 3LM Solutions pour l'accueil et le cadre de travail propos\'es, ainsi qu'\`a l'encadrement acad\'emique de l'\'Ecole Nationale d'Ing\'enieurs de Carthage pour sa disponibilit\'e.
+
+Enfin, je remercie ma famille et mes proches pour leur soutien constant durant cette p\'eriode.
+
+% ------------------------------ RESUME / ABSTRACT ------------------------------
+\chapter*{R\'esum\'e}
+\phantomsection\addcontentsline{toc}{chapter}{R\'esum\'e}
+Ce projet porte sur la conception et la r\'ealisation de la composante intelligente d'un assistant de productivit\'e multilingue, capable d'interpr\'eter des requ\^etes formul\'ees en langage naturel -- saisies au clavier ou \`a la voix -- et de les transformer en actions de gestion de t\^aches et d'\'ev\'enements. L'objectif est de tirer parti des mod\`eles de langage pour la compr\'ehension, tout en conservant un contr\^ole d\'eterministe sur l'ex\'ecution des actions.
+
+La solution repose sur une architecture hybride : le mod\`ele de langage identifie l'intention et extrait les entit\'es, tandis que le backend assure la validation, la normalisation, le routage et l'ex\'ecution via des connecteurs Todo et Agenda, apr\`es confirmation de l'utilisateur. L'entr\'ee vocale est transcrite par un mod\`ele Whisper acc\'ed\'e via l'API Groq puis inject\'ee dans le m\^eme pipeline que le texte ; les r\'eponses peuvent \^etre lues par synth\`ese vocale. Des m\'ecanismes de retry et de fallback am\'eliorent la r\'esilience face aux erreurs des fournisseurs externes.
+
+La qualit\'e est \'evalu\'ee \`a plusieurs niveaux : tests des connecteurs, tests d'extraction des entit\'es, tests de g\'en\'eralisation, tests de fallback, validation contractuelle de l'int\'egration Speech-to-Text et \'evaluation sur un jeu de 65 cas. Ces contr\^oles sont int\'egr\'es \`a un pipeline GitHub Actions (int\'egration continue et contr\^ole de r\'egression). Les r\'esultats incluent 33 cas sur 33 en g\'en\'eralisation et 100~\% d'exactitude des intentions sur l'\'evaluation locale ; l'extraction des entit\'es (pr\'ecision de 57,6~\%), la latence et la d\'ependance aux services externes restent les principales limites.
+
+\medskip\noindent\textbf{Mots-cl\'es :} intelligence artificielle, mod\`eles de langage, assistant conversationnel, classification des intentions, extraction d'entit\'es, Speech-to-Text, API REST, r\'esilience, fallback, tests automatis\'es, GitHub Actions, int\'egration continue.
+
+\chapter*{Abstract}
+\phantomsection\addcontentsline{toc}{chapter}{Abstract}
+This project covers the design and implementation of the intelligent component of a multilingual productivity assistant that interprets natural-language requests -- typed or spoken -- and turns them into task and event management actions. The goal is to leverage large language models for understanding while keeping deterministic control over action execution.
+
+The solution follows a hybrid architecture: the language model identifies the intent and extracts entities, while the backend handles validation, normalization, routing and execution through Todo and Agenda connectors, after user confirmation. Voice input is transcribed by a Whisper model accessed through the Groq API and then fed into the same pipeline as text; replies can be read aloud through speech synthesis. Retry and fallback mechanisms improve resilience against external provider errors.
+
+Quality is assessed at several levels: connector tests, entity extraction tests, intent generalization tests, fallback tests, a contract-level validation of the Speech-to-Text integration, and an evaluation on a 65-case dataset. These checks are wired into a GitHub Actions pipeline (continuous integration and regression control). Results include 33 out of 33 correct cases in generalization and 100\% intent accuracy on the local evaluation; entity extraction precision (57.6\%), latency and dependency on external services remain the main limitations.
+
+\medskip\noindent\textbf{Keywords:} artificial intelligence, large language models, conversational assistant, intent classification, entity extraction, Speech-to-Text, REST API, resilience, fallback, automated testing, GitHub Actions, continuous integration.
+
+% ------------------------------ TABLES ------------------------------
+\tableofcontents
+\clearpage
+\phantomsection\addcontentsline{toc}{chapter}{Liste des figures}
+\listoffigures
+\clearpage
+\phantomsection\addcontentsline{toc}{chapter}{Liste des tableaux}
+\listoftables
+
+\chapter*{Liste des abr\'eviations}
+\phantomsection\addcontentsline{toc}{chapter}{Liste des abr\'eviations}
+\begin{tabular}{@{}p{2.6cm}p{12cm}@{}}
+API & Application Programming Interface \\
+CI / CD & Continuous Integration / Continuous Deployment \\
+FN, FP, TP & Faux n\'egatifs, faux positifs, vrais positifs \\
+HTTP & HyperText Transfer Protocol \\
+JSON & JavaScript Object Notation \\
+LLM & Large Language Model (grand mod\`ele de langage) \\
+NLP & Natural Language Processing \\
+ORM & Object-Relational Mapping \\
+REST & Representational State Transfer \\
+STT & Speech-to-Text (transcription vocale) \\
+TTS & Text-to-Speech (synth\`ese vocale) \\
+UC & Use Case (cas d'utilisation) \\
+UML & Unified Modeling Language \\
+WER & Word Error Rate (taux d'erreur sur les mots) \\
+\end{tabular}
+
+\cleardoublepage
+\pagenumbering{arabic}
+\setcounter{page}{1}
+% ------------------------------ INTRODUCTION GENERALE ------------------------------
+\chapter*{Introduction générale}
+\phantomsection\addcontentsline{toc}{chapter}{Introduction générale}
+\markboth{Introduction générale}{}
+
+La transformation numérique a profondément modifié la manière dont les utilisateurs organisent leurs activités : la gestion des tâches et la planification des événements sont devenues des enjeux de productivité. Parallèlement, les progrès du traitement automatique du langage naturel (NLP) et des grands modèles de langage (LLM) permettent d'interagir avec les applications en langage naturel, par écrit comme à la voix.
+
+Un assistant conversationnel utile ne se limite toutefois pas à générer du texte. Il doit comprendre l'intention de l'utilisateur, identifier les informations nécessaires à une action, interagir correctement avec les services concernés et rester fiable malgré les ambiguïtés du langage, les erreurs des modèles et les défaillances des services externes.
+
+Ce rapport s'inscrit dans le projet « Multilingual AI Productivity Assistant », réalisé au sein de 3LM Solutions. Le travail porte sur la composante intelligente de l'assistant : interprétation des requêtes (texte ou voix), classification des intentions, extraction des entités, orientation des actions vers des connecteurs Todo et Agenda, mécanismes de retry et de fallback, ainsi qu'une validation reposant sur des tests automatisés, des jeux de données d'évaluation et un contrôle de régression. L'objectif est de transformer des requêtes en langage naturel en actions de productivité structurées, avec un accent sur la modularité, la robustesse et la testabilité.
+
+Le rapport comporte cinq chapitres. Le chapitre~\ref{chap:contexte} présente le contexte, l'organisme d'accueil, la problématique et la méthodologie. Le chapitre~\ref{chap:etat} dresse l'état de l'art et justifie les choix technologiques. Le chapitre~\ref{chap:besoins} spécifie les besoins et modélise les interactions. Le chapitre~\ref{chap:conception} détaille la conception de la solution. Le chapitre~\ref{chap:realisation} expose la réalisation, l'interaction vocale, les tests, l'évaluation quantitative, l'intégration continue et les limites. Une conclusion générale présente les contributions et les perspectives.
+
+% ============================== CHAPITRE 1 ==============================
+\chapter{Contexte général et problématique}\label{chap:contexte}
+\chapintro
+Ce chapitre présente l'organisme d'accueil et le déroulement du stage, le contexte des assistants de productivité, la problématique et la solution proposée, puis la méthodologie de conduite du projet.
+
+\section{Présentation de l'organisme d'accueil}
+\subsection{Présentation de l'entreprise}
+3LM Solutions, organisme d'accueil de ce stage d'été, évolue dans le domaine des solutions informatiques et du développement logiciel. Les travaux ont porté sur le projet Multilingual AI Productivity Assistant, dont l'objectif est de faciliter l'interaction entre les utilisateurs et les fonctionnalités de gestion des tâches et des événements à travers le langage naturel. Cette expérience a permis de découvrir les dimensions d'une solution logicielle intégrant l'intelligence artificielle : compréhension des requêtes, intégration de services et validation des fonctionnalités.
+
+\subsection{Département et environnement d'accueil}
+Le stage s'est déroulé à distance, au sein de l'environnement de développement de 3LM Solutions, sous l'encadrement de Mme Souhir Saidi. Cette organisation a exigé de l'autonomie et un suivi régulier de l'avancement. Les activités ont principalement concerné la composante intelligente de l'application : traitement des requêtes en langage naturel, identification des intentions et des entités, gestion des mécanismes de fallback et intégration de connecteurs de productivité.
+
+\subsection{Déroulement du stage}
+Le stage a duré un mois, au cours du mois de juin, en mode entièrement distant. Les travaux ont été répartis selon quatre axes : (i) prise en main du projet et de l'architecture existante ; (ii) développement des fonctionnalités (traitement conversationnel, intentions, entités) ; (iii) intégration et fiabilisation (connecteurs, fallback, gestion des erreurs) ; (iv) tests et validation automatisés. Le suivi des tâches est décrit en section~\ref{sec:kanban}.
+
+\section{Contexte du projet}
+\subsection{Assistants intelligents de productivité}
+Les assistants intelligents de productivité facilitent l'organisation des activités quotidiennes (tâches, événements, informations personnelles). Contrairement aux applications traditionnelles, ils exploitent le traitement du langage naturel pour laisser l'utilisateur s'exprimer librement, par exemple pour créer une tâche ou déplacer un événement. L'assistant doit interpréter la requête, identifier l'action et les informations nécessaires, puis les transmettre aux services concernés.
+
+\subsection{Gestion traditionnelle des tâches et des événements}
+Les outils classiques reposent sur des interfaces graphiques et des opérations prédéfinies : la création d'une tâche ou d'un événement impose de renseigner des champs (titre, date, heure, description). Cette approche est structurée et prévisible, mais contraint l'utilisateur à s'adapter à l'interface, surtout lorsque plusieurs opérations s'enchaînent ou que l'information est exprimée naturellement. Un assistant conversationnel ajoute une couche d'interprétation entre l'utilisateur et ces services.
+
+\subsection{Apport des modèles de langage}
+Les LLM traitent des requêtes en langage naturel et en extraient des informations structurées. Dans le projet, le modèle intervient dans une chaîne comprenant la réception de la requête, la compréhension de l'intention, l'extraction des entités, la validation, la proposition d'une action et, après confirmation, son exécution par un connecteur. Cette architecture sépare la compréhension du langage de l'exécution des opérations métier.
+
+\subsection{Limites des solutions existantes}
+Malgré leurs progrès, les assistants fondés sur des LLM présentent plusieurs difficultés : interprétations incorrectes lorsque la requête est ambiguë, implicite ou incomplète ; dépendance à des services externes (disponibilité, erreurs réseau, limitations de débit, latence) ; difficulté d'évaluation, car il faut mesurer la capacité à reconnaître les intentions et à extraire les entités, pas seulement vérifier que l'application fonctionne. Ces contraintes justifient une architecture combinant validation des sorties du modèle, retry, fallback, connecteurs dédiés et évaluation automatisée.
+
+\section{Problématique et solution proposée}
+\subsection{Problématique}
+Les outils de productivité classiques exigent une intervention manuelle structurée. L'intégration d'un LLM permet une interaction plus naturelle, mais une mauvaise interprétation peut entraîner une opération incorrecte, et la dépendance à des fournisseurs externes expose l'application aux erreurs réseau, aux limitations de débit et à la variabilité des réponses. La problématique s'énonce ainsi :
+
+\begin{quote}\itshape
+Comment concevoir un assistant intelligent multilingue capable de transformer des requêtes exprimées en langage naturel en actions structurées sur des services de productivité, tout en garantissant la fiabilité de l'exécution, la gestion des erreurs et l'évaluation automatisée du comportement du système ?
+\end{quote}
+
+\subsection{Objectifs du projet}
+L'objectif principal est de concevoir et d'intégrer une chaîne de traitement basée sur les LLM permettant d'interagir en langage naturel avec des fonctionnalités de productivité. Les objectifs détaillés sont :
+\begin{itemize}
+\item comprendre des requêtes formulées en langage naturel, dans plusieurs langues, et identifier leur intention ;
+\item extraire les entités nécessaires (titres, dates, heures, personnes, cibles) et les transformer en action structurée et contrôlable ;
+\item intégrer des connecteurs Todo et Agenda et introduire une confirmation avant l'exécution des actions sensibles ;
+\item offrir une modalité d'entrée vocale (transcription) et une restitution vocale des réponses ;
+\item assurer la robustesse des appels aux modèles (retry, fallback) et gérer les erreurs du modèle, du réseau et des services externes ;
+\item mettre en place un jeu de données d'évaluation et intégrer ces validations dans une chaîne d'intégration continue pour détecter les régressions.
+\end{itemize}
+
+\subsection{Solution proposée}
+La solution est un assistant capable de convertir une requête en action de productivité structurée. La requête (saisie ou transcrite) est transmise au module d'interprétation basé sur un LLM, qui identifie l'intention et extrait les entités. Les informations sont validées et transformées en représentation structurée ; pour les actions modifiant des données, une proposition est présentée à l'utilisateur avant exécution. Le système sélectionne ensuite le connecteur correspondant, ce qui isole l'accès aux services externes de l'interprétation du langage. Selon l'erreur rencontrée, des tentatives limitées ou un basculement vers un modèle de secours sont appliqués. Enfin, une couche d'évaluation automatisée exécute des cas de test couvrant les intentions et l'extraction, avec des mécanismes de détection de régression. L'ensemble constitue une chaîne complète -- compréhension, extraction structurée, orchestration, intégration d'API, fiabilité et évaluation -- plutôt qu'un simple chatbot.
+
+\subsection{Périmètre fonctionnel et limites du projet}
+Le périmètre couvre la partie intelligence artificielle et intégration : création, modification et suppression de tâches et d'événements ; interactions conversationnelles (salutations, remerciements, demandes de capacités) ; interprétation, extraction, confirmation, communication avec les connecteurs, gestion des erreurs LLM ; entrée vocale (STT) et restitution vocale (TTS) ; validation par tests déterministes, généralisation, tests des connecteurs et évaluation automatisée dans GitHub Actions.
+
+Restent hors périmètre : l'authentification globale de l'application, gérée séparément ; un déploiement continu complet (la chaîne GitHub Actions couvre l'intégration continue, la validation et l'évaluation) ; les environnements, identifiants et contraintes de disponibilité des services externes et des fournisseurs de modèles ; l'entraînement ou le fine-tuning d'un modèle.
+
+\section{Méthodologie de conduite du projet}
+\subsection{Méthodologie de développement adoptée}
+Une approche itérative et incrémentale a été retenue, adaptée à un projet d'IA dont le comportement doit être vérifié sur plusieurs scénarios avant d'être jugé fiable. Le cycle suivi est : analyse $\rightarrow$ conception $\rightarrow$ développement $\rightarrow$ tests $\rightarrow$ validation $\rightarrow$ amélioration. Les fonctionnalités étaient implémentées sous forme de tâches distinctes, testées à chaque évolution importante pour détecter les régressions, avec une séparation constante entre compréhension par le LLM et exécution des actions. Les appels aux modèles ont été accompagnés progressivement de stratégies de retry et de fallback.
+
+\subsection{Organisation et suivi des tâches}\label{sec:kanban}
+Le suivi a reposé sur un tableau Kanban à trois colonnes : \emph{To Do} (tâches identifiées, non commencées), \emph{In Progress} (tâches en cours de développement ou de validation) et \emph{Done} (tâches terminées après vérification). Chaque activité était représentée par une carte, déplacée selon son avancement, ce qui facilitait la priorisation et la visibilité sur l'état du projet dans le contexte du travail à distance. Le suivi était assuré sous la supervision de Mme Souhir Saidi, avec des échanges pour clarifier les besoins, discuter les choix techniques et valider les étapes.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.9\textwidth]{kanban.png}
+\caption{Exemple de carte Kanban de suivi d'une tâche}\label{fig:kanban}
+\end{figure}
+
+\subsection{Planification du projet : diagramme de Gantt}
+Le diagramme de Gantt complète le Kanban : le Kanban donne une vision opérationnelle de l'état des tâches, le Gantt une vision globale de leur répartition dans le temps. Le stage durant environ un mois, les activités ont été organisées en phases successives, tout en conservant de la flexibilité.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Principales phases de la planification}\label{tab:phases}
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\toprule
+\textbf{Phase} & \textbf{Principales activités} \\
+\midrule
+Prise en main et analyse & Compréhension de l'existant, analyse de l'architecture, identification des besoins \\
+Conception & Définition du pipeline d'interprétation et des interfaces entre composants \\
+Développement & Implémentation des fonctionnalités d'IA et du traitement des requêtes \\
+Intégration & Mise en place des connecteurs Todo et Agenda \\
+Fiabilisation & Retry, fallback, gestion des erreurs, scénarios d'échec \\
+Tests et évaluation & Tests fonctionnels, généralisation, extraction d'entités, évaluation automatisée \\
+CI et validation finale & Intégration des tests dans GitHub Actions, vérification globale \\
+Documentation & Documentation technique et livrables du stage \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[x=2.3cm,y=-0.7cm]
+\newcommand{\gbar}[4]{\node[anchor=east,font=\footnotesize] at (-0.1,#1) {#4};
+  \fill[gray!35,draw=black,rounded corners=1pt] (#2,#1-0.28) rectangle (#3,#1+0.28);}
+\foreach \w in {1,...,4} \node[font=\footnotesize] at (\w-0.5,0) {Semaine \w};
+\foreach \i in {1,...,8} \draw[gray!30] (0,\i) -- (4,\i);
+\foreach \w in {0,...,4} \draw[gray] (\w,0.4) -- (\w,8.6);
+\gbar{1}{0}{1}{Prise en main et analyse}
+\gbar{2}{0.5}{1.5}{Conception}
+\gbar{3}{1}{3}{Développement}
+\gbar{4}{1.5}{3}{Intégration des connecteurs}
+\gbar{5}{2}{3.5}{Fiabilisation (retry, fallback)}
+\gbar{6}{2.5}{4}{Tests et évaluation}
+\gbar{7}{3}{4}{CI et validation finale}
+\gbar{8}{3}{4}{Documentation}
+\end{tikzpicture}
+\caption{Planification des principales activités à l'aide d'un diagramme de Gantt}\label{fig:gantt}
+\end{figure}
+
+\chapconcl
+Ce chapitre a présenté le cadre du stage, la problématique et la méthodologie. L'approche itérative, le suivi Kanban et la planification par phases ont structuré le développement en accordant une place centrale à la validation et à la fiabilité. Le chapitre suivant étudie les approches existantes et justifie les choix technologiques.
+% ============================== CHAPITRE 2 ==============================
+\chapter{État de l'art et justification des choix technologiques}\label{chap:etat}
+\chapintro
+Alors que les premiers assistants reposaient sur des règles et des arbres de décision, l'émergence des LLM permet d'interpréter des requêtes plus variées. Dans un assistant de productivité, le modèle ne génère pas seulement du texte : il doit transformer une demande libre (par exemple « Rappelle-moi de préparer le rapport demain matin ») en représentation structurée exploitable par l'application. Ce chapitre présente les concepts nécessaires, compare les architectures possibles, aborde la fiabilité des systèmes LLM, l'intégration des services et l'évaluation, puis synthétise les choix retenus.
+
+\section{Intelligence artificielle conversationnelle}
+Un assistant conversationnel peut être vu comme une chaîne : requête $\rightarrow$ compréhension $\rightarrow$ interprétation $\rightarrow$ extraction d'informations $\rightarrow$ décision $\rightarrow$ action ou réponse. Les systèmes modernes utilisent des modèles de langage pour généraliser leur compréhension à des formulations différentes.
+
+\subsection{Modèles de langage (LLM)}
+Les LLM sont entraînés sur de grandes quantités de texte et reposent généralement sur l'architecture Transformer et son mécanisme d'attention~\cite{vaswani2017}. Ils génèrent des séquences de tokens à partir d'un contexte et peuvent comprendre une requête, identifier une intention, extraire des informations, résumer ou produire une sortie structurée destinée à une application -- capacité particulièrement importante ici. Un LLM n'est cependant pas un composant déterministe : ses sorties varient selon le contexte, le modèle et les paramètres, et peuvent être incorrectes ou incomplètes. Son intégration exige donc des mécanismes de contrôle, de validation et de sécurisation, surtout lorsqu'une sortie peut modifier des données réelles.
+
+\subsection{Compréhension du langage naturel et classification des intentions}
+L'intention (\emph{intent}) représente l'objectif de l'utilisateur. Des formulations différentes (« Ajoute une tâche pour préparer le rapport », « Rappelle-moi de préparer le rapport ») correspondent à une même catégorie fonctionnelle : la création de tâche. La classification associe une requête à une catégorie prédéfinie (création, modification, suppression de tâches et d'événements, mais aussi salutations, remerciements, demandes de capacités). Un LLM dépasse la correspondance exacte de mots-clés, mais une mauvaise classification peut déclencher une action incorrecte : elle doit être associée à des mécanismes de validation.
+
+\subsection{Extraction des entités}
+L'intention ne suffit pas pour exécuter une action : l'extraction d'entités identifie titre, date, heure, personne, lieu, période ou information à modifier. Pour « Planifie une réunion avec Karim vendredi à 10 heures », l'intention est une création d'événement et les entités sont le participant, le jour et l'heure. L'intention détermine \emph{ce que} l'utilisateur veut faire ; les entités fournissent les paramètres. Les expressions temporelles (« demain », « dans deux heures », « ce soir ») exigent une interprétation contextuelle, d'où la combinaison de l'interprétation du modèle et de vérifications applicatives.
+
+\subsection{Défis du traitement multilingue}
+Une même intention peut s'exprimer avec des structures, un vocabulaire et des conventions différents selon la langue. Les principaux défis sont la variabilité linguistique, l'ambiguïté contextuelle, les expressions temporelles propres à chaque langue, les variations lexicales (synonymes, abréviations, registre familier) et surtout l'évaluation de la généralisation sur des formulations non vues. L'approche multilingue vise une représentation des intentions et des entités indépendante de la langue, ce qui justifie une stratégie d'évaluation par formulations variées (section~\ref{sec:strategie-eval}).
+
+\subsection{Interaction vocale : transcription et synthèse}
+La voix ajoute une modalité d'entrée et de sortie. La transcription (STT) convertit l'audio en texte ; des modèles comme Whisper, entraînés à grande échelle de façon faiblement supervisée, sont conçus pour la reconnaissance vocale multilingue~\cite{radford2023}. La synthèse vocale (TTS) lit un texte à voix haute. Dans le projet, la transcription est déléguée à un service externe (Whisper via l'API Groq) et la synthèse à la bibliothèque Expo Speech côté frontend ; le texte transcrit réintègre ensuite le pipeline conversationnel standard (section~\ref{sec:voix}).
+
+\section{Architectures des assistants intelligents}
+Le choix d'architecture dépend de la flexibilité recherchée, de la complexité des requêtes et du degré de contrôle nécessaire sur les actions exécutées -- critique ici, puisque le système peut créer, modifier ou supprimer des données.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Comparaison des architectures d'assistants}\label{tab:archi-comp}
+\begin{tabularx}{\textwidth}{@{}lXXX@{}}
+\toprule
+ & \textbf{À base de règles} & \textbf{Fondée sur un LLM} & \textbf{Hybride (retenue)} \\
+\midrule
+Principe & Mots-clés et motifs explicites & Le LLM interprète et décide & LLM pour comprendre, logique applicative pour contrôler \\
+Avantages & Déterministe, simple, contrôlable & Formulations variées, multilingue, contexte & Flexibilité et contrôle des opérations \\
+Limites & Nombre de règles croissant, fragile aux variations, coûteux en multilingue & Sorties non déterministes, dépendance au fournisseur, risque si l'exécution est directe & Complexité d'orchestration, nécessite validation et tests \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Les systèmes à base de règles offrent un contrôle important mais deviennent difficiles à maintenir dès que la diversité des requêtes augmente, notamment en contexte multilingue. Une architecture entièrement pilotée par un LLM est flexible mais introduit un risque lorsque sa sortie déclenche directement une opération sur les données.
+
+L'architecture \textbf{hybride} a été retenue. Le LLM prend en charge l'interprétation (classification, extraction) ; la logique applicative assure les opérations déterministes (validation, normalisation, sélection du connecteur, gestion des erreurs, orchestration) ; une étape de confirmation constitue la frontière entre l'interprétation probabiliste et l'exécution déterministe ; les connecteurs encapsulent l'accès aux API. Un changement de fournisseur LLM ou de service externe reste localisé au composant concerné. À cela s'ajoutent des mécanismes transverses de résilience et une couche d'évaluation automatisée intégrée à l'intégration continue.
+
+\section{Fiabilité et résilience des systèmes LLM}
+\subsection{Limites des modèles de langage}
+Les principales limites à prendre en compte sont : la variabilité des sorties ; le risque d'interprétation incorrecte (intention erronée, entité inventée ou omise) ; les sorties structurées invalides ou incomplètes malgré un format demandé, qui imposent une validation applicative ; la dépendance au contexte fourni ; et les contraintes de disponibilité des API externes (limitations de débit, quotas, délais, erreurs temporaires).
+
+\subsection{Gestion des erreurs et réponses incertaines}
+On distingue les \emph{erreurs d'interprétation} (mauvaise intention, entité incorrecte, informations insuffisantes) des \emph{erreurs techniques} (réseau, délai, limitation de débit, erreur serveur), qui ne se traitent pas de la même manière. Face à une réponse insuffisamment fiable, une demande de clarification est préférable à l'exécution d'une action. Le traitement suit le principe : requête $\rightarrow$ interprétation $\rightarrow$ validation $\rightarrow$ décision (poursuivre, clarifier, réessayer, basculer ou échouer de façon contrôlée).
+
+\subsection{Stratégies de retry et de fallback}
+Le \emph{retry} réessaie après une erreur temporaire ; il doit être borné pour ne pas aggraver la latence ou la surcharge, et certaines erreurs (authentification, configuration) ne doivent pas être réessayées. Le \emph{fallback} utilise un modèle ou un service de secours lorsque le principal reste indisponible ; il ne masque pas toutes les erreurs et doit prévoir un état d'échec contrôlé si le principal et le secours échouent.
+
+\subsection{Gestion des erreurs des fournisseurs de modèles}
+Les erreurs fournisseur se classent en limitation de débit (429), erreurs serveur (5xx), erreurs réseau et délais d'attente, erreurs d'authentification ou de configuration, et échec du fallback ; chaque catégorie appelle un comportement distinct (retry, fallback ou arrêt contrôlé), évitant une stratégie uniforme qui répète toutes les requêtes. Le détail de la stratégie retenue est présenté en section~\ref{sec:conc-resilience}.
+
+\section{Intégration des services de productivité}
+\subsection{API REST et principes d'intégration}
+Les API REST permettent à des applications de communiquer par HTTP en opérant sur des ressources (GET, POST, PUT/PATCH, DELETE) avec des données généralement au format JSON. Un connecteur sert d'intermédiaire : il transforme les données internes en requêtes compatibles avec l'API puis interprète les réponses, en distinguant les codes de statut (succès, authentification, ressource inexistante, erreur serveur). Les données issues d'une phrase interprétée par un LLM doivent être validées avant transmission.
+
+\subsection{Connecteurs pour les tâches et pour les événements}
+Pour limiter le couplage avec une API donnée, le pipeline s'appuie sur une interface (assistant $\rightarrow$ interface $\rightarrow$ connecteur $\rightarrow$ API) : il demande une opération (créer, modifier, supprimer, consulter) sans connaître les détails de l'API. Le connecteur construit les requêtes HTTP, convertit les données, transmet l'authentification et traite les réponses et erreurs. Cette abstraction permet de remplacer un service, ou d'utiliser un connecteur simulé en test. Les événements ajoutent des contraintes temporelles (date, heures de début et de fin, participants) ; « demain matin » ou « vendredi prochain » doivent être normalisés avant envoi.
+
+\subsection{Authentification et sécurisation des échanges}
+L'accès aux API repose sur des en-têtes HTTP (clés API, jetons, OAuth~2.0). Les identifiants ne doivent pas figurer dans le code source : ils sont fournis par la configuration de l'environnement et centralisés dans la couche des connecteurs. Les échanges utilisent HTTPS, les paramètres issus du LLM sont validés avant d'être transmis, et les contraintes de limitation de débit des services doivent être respectées.
+
+\section{Évaluation des systèmes conversationnels}
+Un assistant fondé sur un LLM ne peut être jugé fiable sur quelques exemples : une modification du modèle, du prompt ou de l'orchestration peut dégrader certaines fonctionnalités sans erreur technique visible. L'évaluation porte ici sur les éléments structurés nécessaires à l'action : intention, entités, généralisation et absence de régression.
+
+\subsection{Classification des intentions}
+Elle compare, sur des requêtes annotées, l'intention prédite à l'intention attendue (mesure d'exactitude). Le projet distingue les tests de classification classiques des tests de généralisation, car l'évaluation sur des formulations proches de celles du développement est insuffisante.
+
+\subsection{Extraction des entités}
+Elle compare les entités extraites aux entités attendues selon le rappel (entités attendues retrouvées), la précision (entités extraites réellement pertinentes) et l'exactitude des valeurs. Une extraction trop restrictive omet un paramètre nécessaire ; une extraction trop permissive ajoute des informations non demandées. Elle est évaluée indépendamment de l'intention, ce qui permet de localiser l'origine d'un problème. Les définitions formelles sont données en section~\ref{sec:metriques}.
+
+\subsection{Généralisation et robustesse}
+Les tests de généralisation utilisent des formulations différentes de celles de référence pour des intentions connues, afin de vérifier que le système ne dépend pas d'une correspondance lexicale directe. La robustesse concerne aussi les formulations indirectes, les informations partielles et les variations linguistiques.
+
+\subsection{Évaluation des régressions}
+Le projet compare les résultats courants à un niveau de référence (\emph{baseline}) défini dans un fichier dédié (section~\ref{sec:seuils}). Une évaluation utilisant un LLM externe peut être perturbée par des limitations de débit ou des indisponibilités : une baisse apparente des résultats n'est alors pas nécessairement une régression du code. Le pipeline distingue donc les erreurs liées au fournisseur des résultats utilisés pour le contrôle de régression.
+
+\section{Synthèse des choix technologiques}
+\begin{table}[htbp]
+\centering\small
+\caption{Synthèse des choix technologiques et architecturaux}\label{tab:synthese-choix}
+\begin{tabularx}{\textwidth}{@{}p{3.7cm}p{3.7cm}X@{}}
+\toprule
+\textbf{Besoin} & \textbf{Choix retenu} & \textbf{Justification} \\
+\midrule
+Compréhension du langage & LLM & Gestion flexible des formulations et des langues \\
+Actions et paramètres & Classification des intentions, extraction structurée des entités & Transformer la requête en action exploitable \\
+Architecture & Approche hybride & Flexibilité du LLM, contrôle par la logique applicative \\
+Exécution & Connecteurs de services & Séparation entre intelligence conversationnelle et API externes \\
+Modalité vocale & STT (Whisper via Groq), TTS (Expo Speech) & Même pipeline pour voix et texte \\
+Erreurs LLM & Retry borné et fallback & Résilience face aux erreurs temporaires \\
+Validation & Tests automatisés, seuils de référence, CI & Vérification reproductible, détection des régressions \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\chapconcl
+L'étude a conduit à une architecture hybride : le LLM comprend, la logique déterministe valide, route et exécute, des connecteurs modulaires isolent les services externes, la résilience maîtrise la dépendance aux fournisseurs et une évaluation automatisée détecte les régressions. Ces choix fondent la spécification, la conception et la réalisation présentées ensuite.
+% ============================== CHAPITRE 3 ==============================
+\chapter{Analyse et spécification des besoins}\label{chap:besoins}
+\chapintro
+Ce chapitre traduit les objectifs du projet en exigences fonctionnelles et non fonctionnelles. Le système se situe à l'intersection de plusieurs composants -- l'utilisateur, le modèle de langage, la logique applicative et les services externes -- dont il faut préciser les rôles avant de modéliser leurs interactions et de planifier le développement.
+
+\section{Identification des acteurs}
+\begin{table}[htbp]
+\centering\small
+\caption{Acteurs du système}\label{tab:acteurs}
+\begin{tabularx}{\textwidth}{@{}p{3.4cm}XX@{}}
+\toprule
+\textbf{Acteur} & \textbf{Rôle principal} & \textbf{Interaction avec le système} \\
+\midrule
+Utilisateur & Formuler des demandes (texte ou voix) et contrôler les actions proposées & Envoie des requêtes, confirme ou refuse les actions \\
+Services externes de productivité & Fournir la gestion des tâches et des événements & Reçoivent les opérations, retournent leurs résultats \\
+Fournisseurs de modèles & Interpréter les requêtes (LLM) et transcrire la voix (STT) & Retournent intention et entités, ou texte transcrit \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Utilisateur}
+Acteur principal, l'utilisateur s'exprime en langage naturel sans syntaxe imposée, dans plusieurs langues, au clavier ou à la voix. Il peut demander la création, la modification ou la suppression d'une tâche ou d'un événement, ou avoir un échange conversationnel (salutation, remerciement, demande de capacités). Pour les actions modifiant des données, il confirme ou refuse la proposition, ce qui conserve un contrôle humain. Le parcours est : requête $\rightarrow$ interprétation $\rightarrow$ proposition $\rightarrow$ confirmation $\rightarrow$ exécution $\rightarrow$ résultat. Il doit recevoir un retour compréhensible lorsque la demande est ambiguë, incomplète ou impossible.
+
+\subsection{Services externes de productivité}
+Ces services exécutent les actions validées sur leurs propres ressources ; ils ne participent pas à l'interprétation. L'accès passe par des connecteurs qui construisent les requêtes HTTP, transmettent les paramètres et l'authentification, convertissent les données et gèrent les réponses et erreurs. Des connecteurs simulés peuvent être utilisés en test pour reproduire des situations de succès ou d'erreur.
+
+\subsection{Fournisseurs de modèles de langage}
+Le fournisseur LLM transforme une expression non structurée en intention et entités, soumises ensuite à validation et orchestration. Il n'est pas considéré comme toujours disponible ni déterministe : il peut renvoyer une réponse invalide, imposer une limitation de débit ou être indisponible, d'où les mécanismes de validation, de retry et de fallback. Un service de transcription vocale joue un rôle analogue en amont du pipeline pour l'entrée vocale.
+
+\section{Identification des besoins}
+\subsection{Besoins fonctionnels}
+\begin{table}[htbp]
+\centering\small
+\caption{Besoins fonctionnels}\label{tab:bf}
+\begin{tabularx}{\textwidth}{@{}lp{3.6cm}X@{}}
+\toprule
+\textbf{ID} & \textbf{Besoin} & \textbf{Description} \\
+\midrule
+BF1 & Compréhension des requêtes & Analyser une requête libre, sans syntaxe imposée, et en déterminer le sens fonctionnel \\
+BF2 & Identification de l'intention & Distinguer les opérations sur tâches et événements (création, modification, suppression) et reconnaître les intentions conversationnelles \\
+BF3 & Extraction des entités & Extraire titre, date, heure, durée, cible à modifier ou supprimer, sous forme structurée \\
+BF4 & Validation et normalisation & Vérifier la cohérence de l'intention et des paramètres, détecter les informations manquantes ou invalides \\
+BF5 & Proposition et confirmation & Construire l'action avant exécution ; aucune transmission au service en cas de refus \\
+BF6 & Exécution via connecteurs & Transmettre l'opération validée au connecteur Todo ou Agenda et retourner le résultat ou l'erreur \\
+BF7 & Gestion des erreurs & Produire un comportement contrôlé en cas de requête incomplète, de donnée invalide, d'erreur d'API ou de fournisseur \\
+BF8 & Retry et fallback & Réessayer de façon limitée les erreurs temporaires ; basculer vers un modèle de secours lorsque c'est pertinent \\
+BF9 & Multilinguisme & Conserver une interprétation cohérente malgré les variations de vocabulaire, de syntaxe et de langue \\
+BF10 & Interaction vocale & Permettre la saisie vocale (enregistrement, transcription) et la lecture vocale des réponses, avec possibilité de la désactiver \\
+BF11 & Évaluation automatisée & Vérifier intentions, entités, généralisation, connecteurs, erreurs et régressions de façon reproductible en CI \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Besoins non fonctionnels}
+\begin{table}[htbp]
+\centering\small
+\caption{Besoins non fonctionnels}\label{tab:bnf}
+\begin{tabularx}{\textwidth}{@{}p{3cm}X@{}}
+\toprule
+\textbf{Propriété} & \textbf{Exigence} \\
+\midrule
+Fiabilité et robustesse & Comportement cohérent et contrôlé face aux requêtes ambiguës ou aux erreurs externes ; une erreur ne doit pas provoquer l'exécution d'une action incorrecte ; tolérance aux variations de formulation \\
+Disponibilité et résilience & Limiter l'impact des indisponibilités temporaires (retry, fallback) avec échec contrôlé lorsque la récupération est impossible \\
+Performance & Temps de traitement compatible avec une interaction conversationnelle, en tenant compte de la latence propre aux LLM et aux API externes \\
+Maintenabilité et extensibilité & Séparation interprétation / validation / orchestration / connecteurs ; ajout de connecteurs, d'intentions ou de scénarios sans réécriture du pipeline \\
+Testabilité et traçabilité & Composants testables indépendamment (connecteurs simulés) ; conservation des résultats d'évaluation sous forme d'artefacts CI \\
+Sécurité & Clés d'API et paramètres d'accès fournis par la configuration d'environnement, hors du code source ; validation des sorties du modèle avant usage \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Contraintes techniques et limites du périmètre}
+\begin{itemize}
+\item \textbf{Dépendances externes} : fournisseurs LLM et de transcription, et API de productivité (disponibilité, quotas, latence, évolution des contrats, authentification) ne sont pas maîtrisés par l'application ; les évaluations avec fournisseur réel doivent distinguer erreurs système et erreurs fournisseur.
+\item \textbf{Variabilité des modèles} : deux requêtes proches peuvent produire des sorties différentes ; elles sont donc validées avant exécution.
+\item \textbf{Hors périmètre} : authentification globale de l'application ; déploiement continu vers la production (le pipeline couvre l'intégration continue et l'évaluation) ; fine-tuning de modèle ; plateforme universelle intégrant tous les services de productivité.
+\item \textbf{Données d'évaluation limitées} : les jeux de données ne représentent pas toutes les formulations d'utilisateurs réels ; les résultats sont des indicateurs de qualité dans le périmètre défini, non une garantie générale.
+\end{itemize}
+
+\section{Spécification fonctionnelle}
+Le fonctionnement général est la chaîne : utilisateur $\rightarrow$ requête naturelle $\rightarrow$ interprétation LLM $\rightarrow$ intention et entités $\rightarrow$ validation $\rightarrow$ proposition $\rightarrow$ confirmation $\rightarrow$ connecteur $\rightarrow$ service externe $\rightarrow$ résultat. Elle sépare la compréhension de la demande de son exécution.
+
+\subsection{Cas d'utilisation global}
+L'utilisateur soumet une demande, consulte la proposition, la confirme ou la refuse, gère tâches et événements, et converse avec l'assistant ; le fournisseur LLM interprète la requête ; le service de productivité exécute l'opération ; le système traite les erreurs. Le scénario nominal est : (1) l'utilisateur formule une requête ; (2) elle est transmise à l'interprétation ; (3) intention et entités sont identifiées ; (4) les informations sont validées et normalisées ; (5) une action structurée est construite ; (6) elle est présentée pour confirmation ; (7) après confirmation, le connecteur est appelé ; (8) le service exécute l'opération ; (9) le résultat est présenté. En cas d'erreur ou d'information insuffisante, le flux est interrompu pour éviter toute opération incorrecte.
+
+\subsection{Gestion des tâches}
+Trois opérations sont prises en charge. La \emph{création} extrait le titre et les paramètres utiles, valide, propose, puis passe par le connecteur Todo ; un paramètre indispensable manquant ou incohérent empêche l'exécution directe. La \emph{modification} suppose d'identifier la tâche cible et la nouvelle information, en évitant de modifier une ressource incorrecte si plusieurs éléments correspondent. La \emph{suppression} exige une identification suffisamment fiable de la cible et une confirmation. Le résultat distingue au minimum succès et échec, sans jamais présenter comme réussie une opération que le service n'a pas confirmée.
+
+\subsection{Gestion des événements et de l'agenda}
+La création, la modification et la suppression d'événements suivent le même principe, avec des contraintes temporelles : les expressions comme « vendredi après-midi » ou « demain à 10 heures » sont converties en date et heure exploitables (le modèle les exprime au format ISO~8601) avant l'appel au connecteur Agenda, et les informations ambiguës sont traitées dans le flux de validation avant exécution. Déplacer un rendez-vous implique d'identifier l'événement concerné \emph{et} sa nouvelle date ou heure. Au niveau de la confirmation, l'implémentation prévoit également une valeur par défaut pour certains paramètres temporels absents ; ce comportement constitue un point d'amélioration identifié pour renforcer encore la politique « aucune valeur métier implicite ».
+
+\subsection{Interaction conversationnelle multilingue et vocale}
+La capacité multilingue ne consiste pas à traduire : elle vise à conserver la même structure fonctionnelle pour des intentions équivalentes exprimées dans d'autres langues ou formulations. Les intentions purement conversationnelles suivent le même pipeline sans déclencher de connecteur. L'utilisateur peut dicter sa requête : l'audio est transcrit, puis le texte obtenu suit exactement les mêmes étapes que la saisie clavier (section~\ref{sec:voix-integration}). Les réponses de l'assistant peuvent être lues à voix haute, avec un contrôle d'activation.
+
+\subsection{Gestion des erreurs et des demandes non reconnues}
+Une requête peut être comprise et exploitable, comprise mais incomplète, ambiguë, associée à une intention non prise en charge, ou impossible à traiter pour une raison technique. Le système ne doit pas inventer de valeur manquante : il identifie l'information absente et demande une précision lorsque le flux le permet. Une requête non reconnue reçoit une réponse contrôlée, sans appel de connecteur. Les erreurs techniques sont traitées séparément des erreurs d'interprétation : retry limité, puis fallback, puis échec contrôlé avec information de l'utilisateur.
+
+\section{Modélisation des interactions}
+\subsection{Diagrammes de cas d'utilisation}
+Trois acteurs figurent dans le diagramme global : l'utilisateur (soumet une requête, crée, modifie ou supprime tâches et événements, confirme ou refuse, converse, reçoit le résultat ou une réponse pour demande non reconnue, utilise la voix), le fournisseur LLM (interprétation) et le service de productivité (exécution). Les cas liés aux opérations de productivité se spécialisent en gestion des tâches et gestion des événements. Les mécanismes internes (parsing, validation de schéma, gestion fine des erreurs) sont détaillés dans les diagrammes de séquence.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  uc/.style={ellipse,draw,align=center,font=\scriptsize,minimum width=3.3cm,
+             minimum height=1cm,inner sep=1pt,fill=white},
+  rel/.style={-{Stealth[length=2mm]},dashed},
+  lab/.style={midway,fill=white,font=\fontsize{6}{7}\selectfont,inner sep=1pt}]
+\draw[rounded corners=3pt] (1.6,-7.0) rectangle (11.4,5.8);
+\node[anchor=north west,font=\footnotesize\bfseries] at (1.7,5.75) {Assistant IA de productivité};
+
+\ucactor{user}{0}{-0.5}{Utilisateur}
+\ucactor{groq}{13.4}{4.8}{Fournisseur LLM\\(Groq)}
+\ucactor{prod}{13.4}{-1.5}{Services Todo\\et Agenda}
+
+\node[uc] (voice)   at (3.8,2.4)  {Utiliser la voix\\(transcription Whisper)};
+\node[uc] (submit)  at (3.8,0.4)  {Soumettre une requête};
+\node[uc] (confirm) at (3.8,-4.8) {Confirmer une action proposée};
+\node[uc] (ignore)  at (3.8,-6.2) {Ignorer une action proposée};
+\node[uc] (interp)  at (9,4.8)    {Interpréter la requête\\(intention + entités)};
+\node[uc] (conv)    at (9,2.8)    {Échanger de façon\\conversationnelle};
+\node[uc] (unrec)   at (9,1.2)    {Traiter une demande\\non reconnue};
+\node[uc] (taskc)   at (8.1,-0.4) {Créer une tâche};
+\node[uc] (taskm)   at (11.0,-0.4) {Modifier une tâche};
+\node[uc] (taskd)   at (8.1,-2.0) {Supprimer une tâche};
+\node[uc] (eventc)  at (11.0,-2.0) {Créer un événement};
+\node[uc] (eventm)  at (8.1,-3.6) {Modifier un événement};
+\node[uc] (eventd)  at (11.0,-3.6) {Supprimer un événement};
+
+\draw (user)--(voice); \draw (user)--(submit); \draw (user)--(confirm); \draw (user)--(ignore);
+\draw (user)--(taskc); \draw (user)--(taskm); \draw (user)--(taskd);
+\draw (user)--(eventc); \draw (user)--(eventm); \draw (user)--(eventd);
+\draw (groq)--(interp);
+\draw (prod)--(taskc); \draw (prod)--(taskm); \draw (prod)--(taskd);
+\draw (prod)--(eventc); \draw (prod)--(eventm); \draw (prod)--(eventd);
+
+\draw[rel] (voice)  -- node[lab]{\guillemotleft extend\guillemotright} (submit);
+\draw[rel] (conv)   -- node[lab]{\guillemotleft extend\guillemotright} (submit);
+\draw[rel] (unrec)  -- node[lab]{\guillemotleft extend\guillemotright} (submit);
+\draw[rel] (submit) -- node[lab]{\guillemotleft include\guillemotright} (interp);
+\end{tikzpicture}
+\caption{Diagramme de cas d'utilisation global de l'assistant intelligent}\label{fig:uc-global}
+\end{figure}
+
+\subsection{Descriptions textuelles des cas d'utilisation}
+\begin{table}[htbp]
+\centering\scriptsize
+\caption{Descriptions synthétiques des cas d'utilisation}\label{tab:uc}
+\begin{tabularx}{\textwidth}{@{}p{0.9cm}p{2.1cm}p{2.7cm}X@{}}
+\toprule
+\textbf{ID} & \textbf{Nom} & \textbf{Précondition} & \textbf{Scénario nominal / alternatives} \\
+\midrule
+UC-01 & Soumettre une requête & Assistant disponible & Saisie ou dictée de la requête, préparation, transmission à l'interprétation, récupération d'une représentation structurée. \emph{Alternatives} : requête vide ou invalide, service d'interprétation indisponible, intention non reconnue. \\
+UC-02 & Créer une tâche & La requête contient assez d'informations & Intention \intent{create_task}, extraction des entités, validation, proposition, confirmation, requête du connecteur Todo, création, résultat. \emph{Alternatives} : titre absent, données invalides, refus, erreur du service, retry sur erreur temporaire. \\
+UC-03 & Modifier une tâche & Tâche cible identifiable & Intention \intent{modify_task}, extraction de la cible et des nouvelles valeurs, validation, proposition, confirmation, appel du connecteur, résultat. \emph{Alternatives} : plusieurs ressources correspondent, cible introuvable, refus, erreur du service. \\
+UC-04 & Supprimer une tâche & Tâche cible identifiable & Intention \intent{delete_task}, identification de la cible, validation, proposition, confirmation, appel du connecteur, résultat. \emph{Alternatives} : cible introuvable, refus, erreur du service. \\
+UC-05 & Créer un événement & Informations nécessaires disponibles & Intention \intent{create_event}, extraction de la date et de l'heure au format ISO~8601 et de la durée en minutes, validation, proposition, confirmation, appel du connecteur Agenda, résultat. \emph{Alternatives} : information ambiguë ou absente, refus, service indisponible. \\
+UC-06 & Modifier un événement & Événement cible identifiable & Intention \intent{modify_event}, extraction de la cible et des nouvelles valeurs, validation, proposition, confirmation, appel du connecteur Agenda, résultat. \emph{Alternatives} : plusieurs ressources correspondent, cible introuvable, refus, erreur du service. \\
+UC-07 & Supprimer un événement & Événement cible identifiable & Intention \intent{delete_event}, identification de la cible, validation, proposition, confirmation, appel du connecteur Agenda, résultat. \emph{Alternatives} : cible introuvable, refus, erreur du service. \\
+UC-08 & Traiter une demande non reconnue & Requête reçue & Intention classée \intent{unrecognized}, aucun connecteur appelé, réponse contrôlée à l'utilisateur ; une demande non reconnue n'est jamais transformée en action. \\
+UC-09 & Utiliser la voix & Permission micro accordée & Enregistrement, transcription, injection du texte dans le pipeline (UC-01), lecture vocale de la réponse si activée. \emph{Alternatives} : audio absent, échec de transcription. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Diagrammes de séquence système}
+Le scénario général est le suivant : l'utilisateur saisit ou dicte une requête ; le frontend l'envoie au backend (\texttt{POST /assistant/message}) ; pour les requêtes nécessitant une interprétation par le modèle, le backend appelle le fournisseur LLM, qui retourne l'intention et les entités ; le backend normalise les entités (\texttt{normalizeActionEntities}), construit une proposition d'action (\texttt{proposedAction}) et la renvoie au frontend, qui l'affiche pour confirmation. Certaines requêtes de modification de titre de tâche peuvent toutefois être traitées par le routage déterministe avant l'appel au LLM. Après validation par l'utilisateur, le frontend appelle \texttt{POST /assistant/confirm-action} ; le backend transmet l'opération au connecteur Todo ou Agenda, met à jour l'interaction en base et retourne le résultat. Le LLM ne communique jamais directement avec le service de productivité. La validation et l'orchestration de l'exécution sont portées par ces deux routes du backend, en coordination avec le composant d'interface de proposition d'action ; il n'existe pas de service d'orchestration distinct.
+
+La \emph{création d'un événement} suit la même séquence ; la date de l'événement est extraite par le modèle au format ISO~8601 et la durée est demandée par le schéma de classification directement en minutes, puis validée et normalisée par \texttt{normalizeActionEntities}. Aucune couche de normalisation temporelle indépendante n'est présente dans l'implémentation. Dans le scénario d'\emph{erreur}, une erreur temporaire du LLM principal déclenche une nouvelle tentative, puis, si elle persiste, un appel au modèle de secours ; si les deux échouent, le traitement se termine de façon contrôlée avec information de l'utilisateur (figure~\ref{fig:resilience}).
+
+\begin{figure}[htbp]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}
+\seqpart{0}{Utilisateur}{17.2}
+\seqpart{2.8}{Frontend\\(HomeScreen)}{17.2}
+\seqpart{5.6}{Backend\\(index.ts)}{17.2}
+\seqpart{8.4}{LLM\\(Groq)}{17.2}
+\seqpart{11.2}{Connecteur\\Todo}{17.2}
+\seqpart{14.0}{API Todo}{17.2}
+
+\seqmsg{0}{2.8}{-1.0}{Saisit une demande}
+\seqmsg{2.8}{5.6}{-2.0}{POST\\/assistant/message\\\{inputText, inputMode\}}
+\seqmsg{5.6}{8.4}{-3.0}{classify\_intent\\(detectIntent)}
+\seqret{8.4}{5.6}{-4.0}{IntentResult\\intent = create\_task\\+ entités}
+\seqself{5.6}{-5.0}{normalizeActionEntities()}
+\seqself{5.6}{-5.7}{construit proposedAction}
+\seqret{5.6}{2.8}{-6.3}{proposedAction\\+ confirmationMessage}
+\seqret{2.8}{0}{-7.3}{Affiche ActionProposal\\Valider / Modifier /\\Ignorer}
+\seqmsg{0}{2.8}{-8.3}{Valider}
+\seqmsg{2.8}{5.6}{-9.3}{POST\\/assistant/\\confirm-action}
+\seqmsg{5.6}{11.2}{-10.3}{createTask(\{title, dueDate\})}
+\seqmsg{11.2}{14.0}{-11.3}{POST /tasks\\\{title, dueDate\}}
+\seqret{14.0}{11.2}{-12.3}{Réponse Todo\\résultat HTTP}
+\seqret{11.2}{5.6}{-13.3}{createdItem}
+\seqself{5.6}{-14.3}{prisma.assistantInteraction\\.update()}
+\seqret{5.6}{2.8}{-15.6}{createdItem,\\confirmationMessage}
+\seqret{2.8}{0}{-16.6}{Action confirmée\\et exécutée}
+\end{tikzpicture}}
+\caption{Diagramme de séquence : création d'une tâche (connecteur API ; en mode \texttt{stub}, un connecteur simulé remplace le connecteur HTTP)}\label{fig:seq}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}
+\seqpart{0}{Utilisateur}{17.2}
+\seqpart{2.8}{Frontend\\(HomeScreen)}{17.2}
+\seqpart{5.6}{Backend\\(index.ts)}{17.2}
+\seqpart{8.4}{LLM\\(Groq)}{17.2}
+\seqpart{11.2}{Connecteur\\Agenda}{17.2}
+\seqpart{14.0}{API Agenda}{17.2}
+
+\seqmsg{0}{2.8}{-1.0}{Saisit une demande}
+\seqmsg{2.8}{5.6}{-2.0}{POST\\/assistant/message\\\{inputText, inputMode\}}
+\seqmsg{5.6}{8.4}{-3.0}{classify\_intent\\(detectIntent)}
+\seqret{8.4}{5.6}{-4.0}{IntentResult create\_event\\eventDateTime (ISO 8601)\\durationMinutes}
+\seqself{5.6}{-5.0}{normalizeActionEntities()\\validation / normalisation}
+\seqself{5.6}{-5.7}{construit proposedAction}
+\seqret{5.6}{2.8}{-6.3}{proposedAction\\+ confirmationMessage}
+\seqret{2.8}{0}{-7.3}{Affiche ActionProposal\\Valider / Modifier /\\Ignorer}
+\seqmsg{0}{2.8}{-8.3}{Valider}
+\seqmsg{2.8}{5.6}{-9.3}{POST\\/assistant/\\confirm-action}
+\seqmsg{5.6}{11.2}{-10.3}{createEvent(\{title, dateTime,\\duration\})}
+\seqmsg{11.2}{14.0}{-11.3}{POST /events\\\{title, dateTime, duration\}}
+\seqret{14.0}{11.2}{-12.3}{Réponse Agenda\\résultat HTTP}
+\seqret{11.2}{5.6}{-13.3}{createdItem}
+\seqself{5.6}{-14.3}{prisma.assistantInteraction\\.update()}
+\seqret{5.6}{2.8}{-15.6}{createdItem,\\confirmationMessage}
+\seqret{2.8}{0}{-16.6}{Action confirmée\\et exécutée}
+\end{tikzpicture}}
+\caption{Diagramme de séquence : création d'un événement (la date est extraite au format ISO~8601 par le modèle ; la durée est demandée en minutes puis validée et normalisée)}\label{fig:seq-event}
+\end{figure}
+
+\section{Planification du développement}
+\subsection{Product Backlog}
+\begin{table}[htbp]
+\centering\small
+\caption{Product Backlog}\label{tab:backlog}
+\begin{tabularx}{\textwidth}{@{}lXl@{\hspace{8pt}}lXl@{}}
+\toprule
+\textbf{ID} & \textbf{Élément} & \textbf{Prio.} & \textbf{ID} & \textbf{Élément} & \textbf{Prio.} \\
+\midrule
+B01 & Compréhension des requêtes & Haute & B11 & Requêtes non reconnues & Moy. \\
+B02 & Extraction des entités & Haute & B12 & Support multilingue & Moy. \\
+B03 & Gestion des tâches & Haute & B13 & Tests des connecteurs & Haute \\
+B04 & Gestion des événements & Haute & B14 & Tests de généralisation & Haute \\
+B05 & Validation des actions & Haute & B15 & Évaluation du modèle & Haute \\
+B06 & Proposition et confirmation & Haute & B16 & Contrôle des régressions & Haute \\
+B07 & Connecteur Todo & Haute & B17 & Validation frontend & Moy. \\
+B08 & Connecteur Agenda & Haute & B18 & Intégration CI & Haute \\
+B09 & Gestion des erreurs & Haute & B19 & Interaction vocale (STT/TTS) & Moy. \\
+B10 & Retry et fallback & Haute & & & \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Découpage des fonctionnalités}
+Les fonctionnalités sont regroupées en six blocs : (1) compréhension du langage (intention, entités) ; (2) gestion fonctionnelle des tâches et événements ; (3) validation et orchestration, qui évite de confier au modèle l'exécution d'une opération externe ; (4) connecteurs d'intégration ; (5) résilience (erreurs fournisseur, retry, fallback) ; (6) validation et évaluation (tests déterministes, connecteurs, intentions et entités, généralisation, régressions). L'interaction vocale s'insère en amont (entrée) et en aval (sortie) du premier bloc sans modifier les suivants.
+
+\subsection{Planification des itérations}
+\begin{table}[htbp]
+\centering\small
+\caption{Planification par itérations}\label{tab:iterations}
+\begin{tabularx}{\textwidth}{@{}p{1.7cm}p{3.8cm}X@{}}
+\toprule
+\textbf{Période} & \textbf{Itération} & \textbf{Principaux travaux} \\
+\midrule
+Semaine 1 & Analyse et compréhension & Analyse du besoin, étude de l'architecture existante, identification des intentions et entités, contrats fonctionnels \\
+Semaine 2 & Fonctionnalités principales & Compréhension des requêtes, extraction des entités, gestion des tâches et événements, premières intégrations de connecteurs \\
+Semaine 3 & Intégration et robustesse & Finalisation des connecteurs Todo et Agenda, validation des actions, gestion des erreurs, retry et fallback \\
+Semaine 4 & Évaluation et validation & Tests fonctionnels et techniques, généralisation, évaluation du modèle, contrôle des régressions, validation frontend, intégration CI \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Ces itérations ne sont pas strictement séquentielles : certaines validations (tests des connecteurs, par exemple) ont accompagné l'implémentation pour détecter tôt les erreurs d'intégration.
+
+\chapconcl
+L'analyse a défini les acteurs, les besoins fonctionnels et non fonctionnels, les contraintes et le périmètre, puis modélisé les principaux scénarios et planifié le développement. Elle prépare la conception de l'architecture présentée au chapitre suivant.
+% ============================== CHAPITRE 4 ==============================
+\chapter{Conception et architecture de la solution}\label{chap:conception}
+\chapintro
+Ce chapitre présente l'architecture technique retenue. La conception combine l'interprétation par le LLM avec des mécanismes déterministes de validation, d'orchestration et d'intégration : le modèle comprend et extrait, la logique applicative valide et exécute. L'architecture intègre des connecteurs dédiés, des mécanismes de retry et de fallback, une modalité d'entrée vocale et une stratégie d'évaluation.
+
+\section{Architecture globale du système}
+\subsection{Vue d'ensemble}
+L'architecture est modulaire et organisée en niveaux : interface d'interaction, traitement intelligent, logique applicative, connecteurs et services externes. L'utilisateur formule une requête (texte ou voix) depuis l'application ; le backend la reçoit et coordonne le traitement. Le LLM identifie l'intention et extrait les entités, mais sa sortie n'est jamais une instruction d'exécution : la couche de validation et d'orchestration vérifie la cohérence, normalise et détermine l'action. Pour les actions modifiant une ressource, une proposition est soumise à confirmation. L'orchestrateur sélectionne ensuite le connecteur Todo ou Agenda, qui communique avec l'API externe. Le résultat remonte jusqu'à l'utilisateur ; en cas d'erreur, les mécanismes de résilience s'appliquent selon sa nature.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  box/.style={draw,rounded corners=2pt,align=center,minimum height=8mm,text width=4.6cm,font=\small,fill=gray!8},
+  sbox/.style={draw,dashed,rounded corners=2pt,align=center,minimum height=8mm,text width=3.4cm,font=\small},
+  arr/.style={-{Stealth[length=2mm]},thick},node distance=5mm]
+\node[box] (ui) {Interface (Expo / React Native)\\saisie texte ou vocale, confirmation};
+\node[box,below=of ui] (be) {Backend (Node.js, TypeScript)};
+\node[box,below=of be] (llm) {Interprétation LLM\\intention + entités};
+\node[box,below=of llm] (val) {Validation, normalisation\\et orchestration};
+\node[box,text width=3.2cm,below=of val,xshift=-2.1cm] (todo) {Connecteur Todo};
+\node[box,text width=3.2cm,below=of val,xshift=2.1cm] (agd) {Connecteur Agenda};
+\node[box,text width=3.2cm,below=of todo] (tapi) {API Todo};
+\node[box,text width=3.2cm,below=of agd] (aapi) {API Agenda};
+\node[sbox,left=1cm of be] (stt) {Transcription vocale\\\texttt{\scriptsize /assistant/transcribe}};
+\node[sbox,right=1cm of be] (db) {Persistance\\(Prisma, base SQLite)};
+\node[sbox,right=1cm of llm] (res) {Retry borné\\+ fallback};
+\draw[arr] (ui) -- (be);
+\draw[arr] (be) -- (llm);
+\draw[arr] (llm) -- (val);
+\draw[arr] (val.south) -- ++(0,-0.25) -| (todo.north);
+\draw[arr] (val.south) -- ++(0,-0.25) -| (agd.north);
+\draw[arr] (todo) -- (tapi);
+\draw[arr] (agd) -- (aapi);
+\draw[arr] (ui.west) -| (stt.north);
+\draw[arr] (stt.east) -- node[above,font=\scriptsize]{texte} (be.west);
+\draw[arr,dashed] (be.east) -- (db.west);
+\draw[arr,dashed] (llm.east) -- (res.west);
+\end{tikzpicture}
+\caption{Architecture globale de l'assistant intelligent de productivité}\label{fig:archi}
+\end{figure}
+
+La boîte « Validation, normalisation et orchestration » représente une couche \emph{logique} : dans l'implémentation, elle est portée par les routes \texttt{/assistant/message} et \texttt{/assistant/confirm-action} du backend, par la fonction \texttt{normalizeActionEntities} et par le composant d'interface de proposition d'action, et non par un service distinct.
+
+\subsection{Organisation des composants}
+\begin{table}[htbp]
+\centering\small
+\caption{Composants et responsabilités}\label{tab:composants}
+\begin{tabularx}{\textwidth}{@{}p{4cm}X@{}}
+\toprule
+\textbf{Composant} & \textbf{Responsabilité principale} \\
+\midrule
+Interface utilisateur & Saisie (texte, voix), affichage des propositions, résultats et historique ; ne porte pas l'interprétation \\
+Backend / API & Réception des requêtes et coordination du traitement \\
+Transcription vocale & Conversion de l'audio en texte avant le pipeline conversationnel \\
+Service d'interprétation LLM & Intention et entités à partir du langage naturel \\
+Validation et orchestration & Vérification et normalisation, détermination de l'action, confirmation, sélection du connecteur \\
+Connecteurs Todo et Agenda & Adaptation des opérations aux contrats des API externes (endpoints, méthodes, authentification, formats, réponses) \\
+Retry et fallback & Gestion des erreurs temporaires des fournisseurs de modèles \\
+Couche d'évaluation & Mesure du comportement et détection des régressions, intégrée à la CI \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+L'usage du LLM est volontairement limité à l'interprétation ; l'exécution n'est jamais confiée au modèle. Cette séparation est l'élément central de l'architecture hybride : le modèle propose, la logique déterministe contrôle.
+
+\subsection{Flux global de traitement d'une requête}
+Le traitement suit huit étapes : (1) \emph{réception} par le backend, sans opération externe ; (2) \emph{interprétation} par le LLM, qui produit par exemple l'intention \intent{create_task} et l'entité \texttt{title}\,=\,« Préparer le rapport de stage » ; (3) \emph{validation et normalisation}, qui détectent valeurs absentes, incohérentes ou insuffisantes ; (4) \emph{détermination de l'action}, par exemple \intent{create_task} vers le connecteur Todo et \intent{create_event} vers le connecteur Agenda (aucune opération externe pour une salutation ou une demande de capacités) ; (5) \emph{proposition et confirmation} ; (6) \emph{exécution via le connecteur}, qui traduit l'action interne en requête conforme à l'API ; (7) \emph{traitement de la réponse}, normalisée avant retour à l'utilisateur ; (8) \emph{gestion des erreurs} : erreurs LLM temporaires (retry, fallback) et erreurs d'API traitées au niveau des connecteurs et de la logique applicative. Cette chaîne permet de tester séparément chaque étape.
+
+\section{Conception du pipeline conversationnel}
+Le pipeline transforme progressivement une requête en une représentation structurée utilisable pour une action de productivité ou une réponse conversationnelle : normalisation $\rightarrow$ classification de l'intention $\rightarrow$ extraction des entités $\rightarrow$ validation et normalisation $\rightarrow$ construction de l'action $\rightarrow$ confirmation $\rightarrow$ exécution $\rightarrow$ réponse.
+
+\subsection{Réception et normalisation des requêtes}
+La requête est reçue puis préparée pour l'interprétation sans en altérer le sens. L'objectif n'est pas de remplacer la compréhension sémantique du modèle par des règles lexicales : la normalisation prépare l'entrée, le LLM interprète les formulations variées, y compris dans plusieurs langues. Une requête issue de la transcription vocale entre ici dans le même flux qu'une requête saisie.
+
+\subsection{Détection et classification des intentions}
+Le LLM associe la requête à une intention parmi les catégories prises en charge (tableau~\ref{tab:intents}). L'application détermine ensuite le traitement correspondant ; une intention inconnue ou insuffisamment déterminée est orientée vers le traitement des demandes non reconnues plutôt que vers une exécution arbitraire.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Intentions prises en charge}\label{tab:intents}
+\begin{tabularx}{\textwidth}{@{}p{3.6cm}X@{}}
+\toprule
+\textbf{Catégorie} & \textbf{Intentions} \\
+\midrule
+Tâches & \intent{create_task}, \intent{modify_task}, \intent{delete_task} \\
+Événements & \intent{create_event}, \intent{modify_event}, \intent{delete_event} \\
+Synthèse & \intent{summarize_period} \\
+Conversation & \intent{greeting}, \intent{farewell}, \intent{thanks}, \intent{small_talk} \\
+Capacités & \intent{capabilities} \\
+Hors périmètre & \intent{unrecognized} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Extraction et normalisation des entités}
+Selon l'opération, les entités sont : titre de tâche ou d'événement, cible d'une modification ou suppression, date, heure, durée, informations d'identification de la ressource. Les valeurs extraites ne sont transmises aux API qu'après normalisation et confirmation de l'utilisateur. Dans l'implémentation, le modèle exprime la date d'un événement au format ISO~8601 attendu par le connecteur Agenda, et les durées (« 30 minutes », « 1h30 ») sont converties en minutes puis normalisées par \texttt{normalizeActionEntities}. La phase de validation distingue quatre situations : informations complètes (le traitement continue), incomplètes (demande de précision ou interruption), ambiguës (pas d'exécution tant que l'ambiguïté subsiste) et invalides (rejet ou correction).
+
+\subsection{Construction des actions de productivité}
+Intention et entités validées sont transformées en une action structurée, point de transition entre compréhension et exécution. Le LLM ne dialogue jamais avec les services Todo ou Agenda.
+\begin{lstlisting}
+proposedAction {
+  interactionId, intent, details, targetId, requiresValidation
+}
+\end{lstlisting}
+Les actions \intent{create_task}, \intent{modify_task} et \intent{delete_task} sont orientées vers le connecteur Todo, les actions sur les événements vers le connecteur Agenda. Cette représentation intermédiaire améliore la maintenabilité : un changement d'API est principalement confiné au connecteur.
+
+\subsection{Gestion des réponses conversationnelles}
+Pour une intention conversationnelle (\intent{greeting}, \intent{thanks}, \intent{small_talk}), aucune API n'est sollicitée et la réponse est produite directement. Pour une action opérationnelle, la réponse dépend du résultat : confirmation en cas de succès, réponse contrôlée en cas d'échec. Une demande insuffisamment fiable ou hors périmètre ne déclenche aucune action externe. Les problèmes fonctionnels (information manquante ou ambiguë) sont distingués des problèmes techniques (réseau, fournisseur, API).
+
+\section{Conception de la stratégie de résilience}\label{sec:conc-resilience}
+Le caractère probabiliste du LLM et la dépendance au fournisseur imposent une résilience à plusieurs niveaux, résumée au tableau~\ref{tab:resilience-niveaux}.
+
+\subsection{Gestion des erreurs du modèle principal}
+Les erreurs temporaires (limitation de débit, erreur serveur, problème réseau, délai dépassé) peuvent justifier un retry borné ; les erreurs indiquant un problème permanent ne sont pas réessayées. Le nombre de tentatives est limité pour éviter une boucle infinie et une charge inutile sur le fournisseur. Les erreurs non récupérables conduisent à un échec contrôlé.
+
+\subsection{Mécanisme de fallback}
+Si le modèle principal ne permet pas de poursuivre après les mécanismes de récupération, un modèle de secours est utilisé. Le fallback est un second niveau de protection, non un moyen de masquer toutes les erreurs : une erreur 429 peut conduire directement au basculement, une erreur serveur temporaire provoque d'abord un retry contrôlé, une erreur non récupérable n'est pas répétée. Si le secours échoue aussi, une erreur contrôlée est retournée (figure~\ref{fig:resilience}).
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  b/.style={draw,rounded corners=2pt,align=center,font=\footnotesize,text width=2.1cm,minimum height=9mm,fill=gray!8},
+  arr/.style={-{Stealth[length=2mm]},thick},node distance=7mm]
+\node[b] (p) {Appel du modèle principal};
+\node[b,right=of p] (c) {Erreur récupérable ?};
+\node[b,right=of c] (r) {Retry borné};
+\node[b,right=of r] (f) {Modèle de secours};
+\node[b,below=7mm of f] (e) {Échec contrôlé};
+\draw[arr] (p) -- node[above,font=\scriptsize]{erreur} (c);
+\draw[arr] (c) -- node[above,font=\scriptsize]{oui} (r);
+\draw[arr] (r) -- node[above,font=\scriptsize]{échec} (f);
+\draw[arr] (f) -- node[right,font=\scriptsize]{échec} (e);
+\draw[arr] (c.south) |- node[below,pos=0.75,font=\scriptsize]{non} (e.west);
+\end{tikzpicture}
+\caption{Logique de résilience face aux erreurs du fournisseur LLM (un succès à toute étape reprend le pipeline)}\label{fig:resilience}
+\end{figure}
+
+\subsection{Routage déterministe des actions}
+La résilience repose aussi sur la réduction de la dépendance au LLM lorsque le contexte applicatif suffit. Une fois l'intention validée, chaque type d'action est explicitement associé à son connecteur (\intent{create_task}, \intent{modify_task}, \intent{delete_task} vers Todo ; \intent{create_event}, \intent{modify_event}, \intent{delete_event} vers Agenda), sans nouvelle sollicitation du modèle. Le comportement est plus prévisible et plus facile à tester : le LLM comprend, la logique déterministe valide et route, les connecteurs exécutent.
+
+\subsection{Gestion des cas non reconnus}
+Une requête est non reconnue si elle ne correspond à aucune intention prise en charge, est trop ambiguë ou manque d'informations obligatoires. L'intention est alors \intent{unrecognized}, aucun connecteur n'est appelé et une réponse conversationnelle est retournée. Cette règle est essentielle pour la modification et la suppression : une cible insuffisamment identifiée ne doit pas conduire à une modification arbitraire.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Niveaux de la stratégie de résilience}\label{tab:resilience-niveaux}
+\begin{tabularx}{\textwidth}{@{}l p{4.2cm}X@{}}
+\toprule
+\textbf{Niveau} & \textbf{Mécanisme} & \textbf{Objectif} \\
+\midrule
+1 & Classification des erreurs & Distinguer erreurs récupérables et non récupérables \\
+2 & Retry limité & Récupérer certaines erreurs temporaires \\
+3 & Fallback & Maintenir le traitement si le modèle principal reste indisponible \\
+4 & Routage déterministe & Réduire la dépendance au LLM pour les décisions applicatives \\
+5 & Cas non reconnus & Éviter d'agir sur une interprétation incertaine \\
+6 & Tests automatisés & Vérifier le comportement attendu de chaque mécanisme \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Conception des connecteurs API}
+\subsection{Architecture des connecteurs}
+Les connecteurs forment une couche d'abstraction entre l'orchestrateur et les API externes : orchestrateur $\rightarrow$ contrat du connecteur $\rightarrow$ connecteur Todo ou Agenda $\rightarrow$ requête HTTP $\rightarrow$ API. L'orchestrateur ignore les détails du service ; le connecteur se charge de construire la requête adaptée. Des implémentations de test peuvent remplacer les connecteurs réels si elles respectent le contrat, ce qui permet de tester l'orchestration sans service externe.
+
+\subsection{Contrats d'interface Todo et Agenda}
+Le contrat Todo regroupe \texttt{createTask}, \texttt{modifyTask} et \texttt{deleteTask} ; le contrat Agenda \texttt{createEvent}, \texttt{modifyEvent} et \texttt{deleteEvent}. L'orchestrateur n'a pas à connaître l'URL, la méthode HTTP, le corps de la requête, les en-têtes, le format de réponse ni le traitement des erreurs HTTP. Les contrats permettent de tester séparément la logique applicative (quelle opération ?) et l'intégration API (traduction correcte en HTTP).
+
+\subsection{Gestion des paramètres, des réponses et des erreurs HTTP}
+Le connecteur sélectionne l'endpoint et la méthode, prépare paramètres et corps, ajoute les informations d'authentification fournies par la configuration d'environnement, puis interprète la réponse en résultat normalisé. Les données temporelles sont transmises dans le format attendu par le service Agenda.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Traitement général des réponses HTTP par les connecteurs}\label{tab:http}
+\begin{tabularx}{\textwidth}{@{}p{3.4cm}p{3.4cm}X@{}}
+\toprule
+\textbf{Catégorie} & \textbf{Exemple} & \textbf{Traitement général} \\
+\midrule
+Succès & 2xx & Convertir et retourner le résultat \\
+Erreur client & 4xx (authentification, ressource inexistante) & Identifier le problème, retourner une erreur contrôlée, ne pas répéter une requête identique \\
+Erreur serveur & 5xx & Considérer une indisponibilité éventuellement temporaire \\
+Erreur réseau & Timeout, connexion interrompue & Traiter comme erreur technique \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Les connecteurs retournent des erreurs suffisamment structurées pour que la couche applicative réponde à l'utilisateur sans exposer inutilement les détails internes du service.
+
+\subsection{Séparation entre logique conversationnelle et intégration externe}
+La logique conversationnelle répond à « que demande l'utilisateur, quelle intention, quelles informations, l'action est-elle valide ? » ; les connecteurs répondent aux questions techniques (endpoint, méthode, paramètres, en-têtes, interprétation de la réponse, erreurs HTTP). Cette faible dépendance permet d'ajouter une intention sans modifier la couche HTTP, de confiner un changement d'API au connecteur correspondant, de tester chaque côté indépendamment et d'ajouter un service par un nouveau connecteur respectant les conventions de l'application. Le choix entre connecteurs réels et connecteurs simulés (\emph{stub}) est fait par configuration.
+
+\section{Conception de la persistance}
+La base de données stocke les données propres à l'application et l'historique des interactions ; les tâches et événements restent gérés par les services Todo et Agenda via leurs API, ce qui évite deux sources de vérité concurrentes. L'accès aux données passe par Prisma, qui définit le modèle de façon déclarative, génère le client typé et gère les migrations. L'environnement de développement et de validation utilise SQLite, léger et reproductible ; un déploiement à grande échelle demanderait une réflexion complémentaire (section~\ref{sec:limites-deploiement}).
+
+Une interaction regroupe la requête de l'utilisateur, le résultat de l'interprétation, l'action éventuelle (proposée, confirmée, exécutée ou échouée) et la réponse de l'assistant, avec des informations temporelles pour restituer l'historique chronologiquement. Le modèle distingue les interactions conversationnelles pures de celles ayant conduit à une opération externe, ainsi que les demandes non reconnues. Le LLM n'accède pas à la base : le backend contrôle les lectures et écritures, ce qui facilite aussi le test de la persistance indépendamment du modèle.
+
+\section{Conception de la stratégie d'évaluation}\label{sec:strategie-eval}
+L'évaluation s'organise en niveaux complémentaires pour distinguer une régression réelle d'un problème temporaire du fournisseur : jeux de données structurés (intentions, entités), cas de généralisation, tests déterministes et contrôle de régression.
+
+\subsection{Organisation des jeux de données de test}
+\begin{itemize}
+\item \textbf{Jeu de données fonctionnel} : requêtes représentatives de toutes les intentions (tableau~\ref{tab:intents}), chacune associée à une intention attendue et, si besoin, à des entités attendues.
+\item \textbf{Tests de généralisation} : formulations différentes de celles de référence pour les mêmes intentions, afin de vérifier que le système ne se limite pas à quelques formulations.
+\item \textbf{Tests d'extraction des entités} : titre de tâche, cible d'une modification, nom d'événement, informations temporelles.
+\item \textbf{Tests déterministes} : contrats des connecteurs, appels aux API Todo et Agenda, routage, traitement des erreurs, retry et fallback, validation contractuelle de la transcription vocale, compilation. Ils ne dépendent pas du comportement probabiliste du modèle et évitent d'attribuer au LLM des erreurs d'un composant déterministe.
+\end{itemize}
+
+\subsection{Définition des métriques}\label{sec:metriques}
+L'\emph{exactitude des intentions} est la proportion d'intentions prédites correctes :
+\begin{equation}
+\text{Accuracy}=\frac{N_{\text{prédictions correctes}}}{N_{\text{prédictions totales}}}
+\end{equation}
+Le \emph{rappel} et la \emph{précision} des entités s'expriment à partir des vrais positifs (TP), faux négatifs (FN, entités attendues non extraites) et faux positifs (FP, entités extraites non attendues) :
+\begin{equation}
+\text{Recall}=\frac{TP}{TP+FN}\qquad\qquad \text{Precision}=\frac{TP}{TP+FP}
+\end{equation}
+Une extraction supplémentaire non pertinente est problématique même lorsque les entités attendues sont retrouvées : rappel et précision sont donc analysés conjointement, complétés par l'exactitude des valeurs extraites. Le tableau~\ref{tab:metriques} résume l'ensemble des métriques ; les erreurs du fournisseur sont comptabilisées à part pour ne pas être confondues avec des erreurs de classification.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Métriques d'évaluation}\label{tab:metriques}
+\begin{tabularx}{\textwidth}{@{}p{4cm}X@{}}
+\toprule
+\textbf{Métrique} & \textbf{Objectif} \\
+\midrule
+Intent accuracy & Correction de la classification des intentions \\
+Entity recall & Capacité à extraire les entités attendues \\
+Entity precision & Pertinence des entités extraites (complément : taux d'entités inattendues) \\
+Entity value correctness & Correction des valeurs extraites \\
+Coverage & Proportion de cas effectivement évalués \\
+Provider error rate & Cas interrompus par une erreur du fournisseur \\
+Latence moyenne & Temps de traitement observé ; indicateur et non mesure de qualité fonctionnelle \\
+Confiance moyenne & Indicateur de stabilité des prédictions, ne remplaçant pas les mesures d'exactitude \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Seuils d'acceptation et détection des régressions}\label{sec:seuils}
+Le projet définit des valeurs de référence dans un fichier de baseline ; elles servent de seuils de contrôle et \textbf{ne constituent pas des résultats expérimentaux}.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Seuils de référence du regression gate}\label{tab:seuils}
+\begin{tabularx}{\textwidth}{@{}Xl@{}}
+\toprule
+\textbf{Critère} & \textbf{Valeur de référence} \\
+\midrule
+Baseline de généralisation des intentions & 100~\% \\
+Baseline d'extraction des entités & 100~\% \\
+Exactitude minimale attendue & 95~\% \\
+Régression maximale autorisée & 5 points de pourcentage \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+La régression se calcule par différence entre la valeur de référence et la valeur courante : avec une référence de 100~\% et une valeur courante de 97~\%, la diminution est de 3 points, inférieure aux 5 points autorisés. Une valeur sous le seuil minimal ou une diminution supérieure à la marge entraîne l'échec du contrôle. Cette règle est appliquée sur des métriques distinctes de l'évaluation descriptive du jeu complet, qui fournit l'analyse détaillée.
+
+Une évaluation partiellement interrompue par une réponse 429 ne traduit pas nécessairement une régression du code : erreurs du fournisseur, couverture et métriques sur les cas effectivement traités sont conservées séparément. Cette stratégie est ensuite intégrée à la CI.
+
+\chapconcl
+La conception sépare l'interprétation probabiliste du LLM de l'exécution déterministe : pipeline conversationnel, résilience à plusieurs niveaux, connecteurs encapsulant les API, persistance distincte des services externes, et stratégie d'évaluation distinguant erreurs applicatives et erreurs du fournisseur. Le chapitre suivant présente la réalisation de ces composants et les résultats obtenus.
+% ============================== CHAPITRE 5 ==============================
+\chapter{Réalisation, tests et validation}\label{chap:realisation}
+\chapintro
+Ce chapitre décrit la mise en œuvre des choix de conception : environnement de développement, pipeline conversationnel, interface utilisateur, interaction vocale, mécanismes de résilience, connecteurs de productivité, puis tests fonctionnels, évaluation quantitative, intégration continue et limites. Les résultats des différents niveaux d'évaluation (évaluation locale du jeu de données, généralisation, exécution CI, regression gate) sont présentés séparément et ne doivent pas être confondus.
+
+\section{Environnement de développement}
+\subsection{Environnement matériel et logiciel}
+Le développement a été réalisé sur un poste personnel sous Windows, permettant d'exécuter localement le backend, le frontend et les scripts de test. Les clés d'accès aux fournisseurs ne figurent pas dans le code source : elles sont gérées par la configuration de l'environnement.
+
+\subsection{Technologies et bibliothèques utilisées}
+\begin{table}[htbp]
+\centering\small
+\caption{Environnement et technologies utilisés}\label{tab:techno}
+\begin{tabularx}{\textwidth}{@{}p{4.3cm}X@{}}
+\toprule
+\textbf{Élément} & \textbf{Rôle dans le projet} \\
+\midrule
+Visual Studio Code, Git, GitHub & Édition du code, gestion des versions, hébergement du dépôt \\
+Node.js, npm, TypeScript & Exécution du backend, gestion des dépendances, développement typé (structures de données explicites entre les étapes du traitement) \\
+Prisma, SQLite & Modélisation, client et migrations ; persistance locale de développement et de validation \\
+API REST / HTTP & Communication avec les services de productivité \\
+LLM via Groq & Compréhension des requêtes, classification des intentions, extraction des entités (évaluations et inférence) \\
+Whisper via Groq & Transcription de l'entrée vocale \\
+Expo / React Native & Interface frontend ; adresse du backend configurable par variable d'environnement \\
+Expo Speech & Synthèse vocale des réponses de l'assistant \\
+ESLint, TypeScript (frontend) & Analyse statique et typage de l'interface \\
+GitHub Actions & Automatisation des tests et des contrôles de validation \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Organisation du dépôt et gestion des versions}
+Le dépôt contient un backend (interprétation, intentions et entités, orchestration, résilience, connecteurs, scripts d'évaluation), un frontend Expo / React Native et la configuration GitHub Actions.
+Le dépôt du projet est disponible sur GitHub : \href{https://github.com/zgarnirawen/Multilingual-AI-Productivity-Assistant}{\texttt{github.com/zgarnirawen/Multilingual-AI-Productivity-Assistant}}.
+\begin{lstlisting}
+Multilingual-AI-Productivity-Assistant/
+  backend/   src/ (services, connectors, ...)  prisma/  evaluation-results/
+  frontend/  src/app/  .env.example
+  .github/workflows/assistant-validation.yml
+  README.md
+\end{lstlisting}
+Le développement s'est appuyé sur des branches dédiées, validées avant intégration à la branche principale :
+\begin{itemize}
+\item \url{feature/real-agenda-todo-api} : connecteurs réels de productivité ;
+\item \url{feature/resilient-intent-inference} : résilience de l'inférence ;
+\item \url{fix/task-target-query-normalization} : normalisation des requêtes ;
+\item \url{feat/evaluation-dataset} : évaluation automatisée et validation frontend, proposée à l'intégration par pull request.
+\end{itemize}
+La gestion des versions participe ainsi à la démarche de validation en associant chaque évolution à ses vérifications.
+
+\section{Réalisation du pipeline conversationnel}
+Le pipeline transforme une requête en représentation structurée, transmise si nécessaire au connecteur approprié : traitement de la requête $\rightarrow$ classification $\rightarrow$ extraction $\rightarrow$ normalisation et validation $\rightarrow$ construction de l'action $\rightarrow$ proposition et confirmation $\rightarrow$ connecteur Todo ou Agenda.
+
+\subsection{Traitement des requêtes}
+Le backend transmet la requête au composant d'interprétation, qui détermine l'intention et identifie les éléments importants. Les formulations « Créer une tâche pour préparer le rapport », « Ajoute-moi une tâche : préparer le rapport » ou « Je dois préparer le rapport, crée une tâche pour ça » doivent toutes être interprétées comme une création de tâche. Le résultat est une représentation structurée et non une réponse textuelle brute, car les composants d'exécution exigent des données cohérentes. Les intentions conversationnelles (\intent{greeting}, \intent{farewell}, \intent{thanks}, \intent{small_talk}, \intent{capabilities}) sont traitées séparément des intentions d'action ; une requête non interprétable reçoit \intent{unrecognized} et ne déclenche aucune opération externe.
+
+\subsection{Classification des intentions}
+La classification est réalisée par le LLM, dont le résultat est contrôlé par la logique applicative avant tout usage. « Crée une tâche pour préparer la présentation » doit donner \intent{create_task} ; « Organise une réunion avec Sara vendredi à 14 heures » doit donner \intent{create_event}. Le routage déterministe (section~\ref{sec:routage}) en découle. Des tests de généralisation sur des formulations inédites vérifient que la classification ne dépend pas des formulations du jeu initial (section~\ref{sec:tests-generalisation}).
+
+\subsection{Extraction des entités}
+Pour « Créer une réunion avec Sara vendredi à 14h pendant une heure », la représentation attendue comprend l'intention \intent{create_event} et les entités participant (Sara), date (vendredi), heure (14h) et durée (1 heure). Les données sont ensuite contrôlées : « Crée une réunion avec Sara » permet d'identifier l'intention et le participant mais pas tous les paramètres d'un événement, et le système ne doit pas considérer une information manquante comme une valeur valide générée arbitrairement. L'évaluation montre que l'extraction est plus sensible que la classification (section~\ref{sec:eval-quant}).
+
+\subsection{Normalisation et résolution des paramètres d'action}
+La sortie du LLM n'est pas utilisée directement pour appeler une API : les entités sont validées et normalisées, puis les cibles sont résolues, pour produire des paramètres compatibles avec les contrats des connecteurs. Le prompt de classification demande au modèle d'exprimer la date d'un événement au format ISO~8601 et la durée directement en minutes (« 30 minutes » donne 30, « 1h30 » donne 90) ; la fonction \texttt{normalizeActionEntities} valide et normalise ensuite notamment les durées, les noms de contacts et les requêtes de ciblage. La résolution de cible identifie la ressource visée par une modification ou suppression. Par exemple, « Modifie la tâche rapport final et renomme-la en rapport finalisé » donne \intent{modify_task} avec la cible « rapport final » et la nouvelle valeur « rapport finalisé ». Une requête incomplète ou ambiguë n'est pas exécutée. Cette étape matérialise la frontière entre interprétation probabiliste et exécution déterministe.
+
+\section{Interface utilisateur}
+L'interface est une application Expo / React Native dont l'écran principal est une conversation. L'utilisateur y saisit un message ou dicte sa requête ; pour les intentions de création, l'assistant affiche une proposition d'action (composant \texttt{ActionProposal}) accompagnée des boutons \emph{Valider}, \emph{Modifier} et \emph{Ignorer}. L'action n'est transmise au backend (\texttt{POST /assistant/confirm-action}) qu'après validation par l'utilisateur.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.45\textwidth]{ecran.png}
+\caption{Écran de conversation de l'assistant}\label{fig:ecran}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.45\textwidth]{carte.png}
+\caption{Proposition d'action soumise à confirmation}\label{fig:ui-proposal}
+\end{figure}
+
+\section{Réalisation de l'interaction vocale}\label{sec:voix}
+L'interaction vocale ajoute à l'assistant une modalité d'entrée (dictée) et de sortie (lecture des réponses) sans modifier le cœur du pipeline. La figure~\ref{fig:voix} résume le flux.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  b/.style={draw,rounded corners=2pt,align=center,font=\footnotesize,text width=2.5cm,minimum height=1.1cm,fill=gray!8},
+  arr/.style={-{Stealth[length=2mm]},thick},node distance=6mm]
+\node[b] (n1) {Microphone, permission, enregistrement (URI)};
+\node[b,right=of n1,text width=3.3cm] (n2) {\texttt{POST}\\\texttt{\scriptsize /assistant/transcribe}\\(multipart)};
+\node[b,right=of n2] (n3) {SDK Groq, modèle Whisper};
+\node[b,right=of n3] (n4) {Réponse JSON : texte transcrit};
+\node[b,below=7mm of n4] (n5) {Pipeline conversationnel (identique au texte)};
+\node[b,left=of n5] (n6) {Réponse textuelle de l'assistant};
+\node[b,left=of n6] (n7) {Expo Speech (lecture vocale)};
+\draw[arr] (n1)--(n2);\draw[arr] (n2)--(n3);\draw[arr] (n3)--(n4);
+\draw[arr] (n4)--(n5);\draw[arr] (n5)--(n6);\draw[arr] (n6)--(n7);
+\end{tikzpicture}
+\caption{Flux de l'interaction vocale : entrée par transcription, sortie par synthèse}\label{fig:voix}
+\end{figure}
+
+\subsection{Acquisition et traitement de l'entrée vocale}
+Côté frontend, l'écran de conversation propose, en plus de la saisie texte, un contrôle d'enregistrement par le microphone de l'appareil. Avant le premier enregistrement, l'application demande à l'utilisateur la permission d'accéder au microphone ; sans cette permission, aucune capture n'est possible. L'enregistrement audio est piloté par un état d'enregistrement de l'interface, qui reflète l'enregistrement en cours et déclenche son arrêt. À l'arrêt, l'enregistrement fournit un fichier audio désigné par un URI local. Ce fichier est ensuite préparé pour l'envoi au backend : il est ajouté comme partie de fichier d'une requête \texttt{multipart/form-data}.
+
+\subsection{Conversion Speech-to-Text}
+Le frontend envoie l'audio au backend par une requête \texttt{POST} sur l'endpoint \url{/assistant/transcribe}, au format \texttt{multipart/form-data}, avec le fichier audio en pièce jointe. Le backend vérifie la présence du fichier : en son absence, il retourne une réponse d'erreur au lieu de poursuivre le traitement. Il transmet ensuite l'audio au service de transcription Groq par son SDK, en utilisant un modèle de transcription Whisper (\texttt{whisper-large-v3}). Lorsque la langue est explicitement définie, elle est transmise comme paramètre de configuration de la transcription ; sinon, le service applique son comportement par défaut. La réponse est un objet JSON contenant le texte transcrit. Les erreurs (échec du service de transcription ou autre exception) sont interceptées et retournées sous forme de réponse d'erreur ; côté interface, un échec de transcription est affiché dans la conversation sous la forme d'une bulle d'erreur de l'assistant.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Contrat de l'endpoint de transcription}\label{tab:contrat-stt}
+\begin{tabularx}{\textwidth}{@{}p{4.3cm}X@{}}
+\toprule
+\textbf{Aspect} & \textbf{Comportement} \\
+\midrule
+Méthode et route & \texttt{POST /assistant/transcribe} \\
+Format de requête & \texttt{multipart/form-data} avec un fichier audio \\
+Validation & Absence de fichier audio : réponse d'erreur \\
+Service appelé & SDK Groq, modèle de transcription Whisper \\
+Langue & Paramètre de langue transmis lorsqu'il est explicitement défini \\
+Réponse nominale & JSON contenant le texte transcrit \\
+Erreurs & Erreurs du service ou du traitement interceptées et renvoyées sous forme de réponse d'erreur \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Intégration du texte transcrit dans le pipeline conversationnel}\label{sec:voix-integration}
+La voix est une modalité d'entrée supplémentaire et non une architecture de raisonnement distincte : le texte transcrit est injecté dans le même pipeline que les messages saisis. Après transcription, il suit les mêmes étapes d'interprétation, d'extraction d'entités, de validation, de routage et d'exécution, avec la même confirmation avant toute action. Le mode d'entrée (vocal ou texte) est transmis à l'envoi du message (\texttt{inputMode}) et conservé dans l'historique des interactions, ce qui permet de distinguer l'origine d'une requête sans dupliquer la logique de traitement.
+
+\subsection{Synthèse vocale des réponses}
+La restitution vocale utilise Expo Speech côté frontend : à partir de la réponse textuelle de l'assistant, l'application déclenche une lecture à voix haute. La langue configurée dans le code est le français (\texttt{fr-FR}). Avant chaque nouvelle lecture, la lecture en cours est arrêtée pour éviter le chevauchement de deux voix. Un contrôle d'activation et de désactivation (muet) est disponible dans l'en-tête de l'interface. Seules les réponses de l'assistant sont lues, et non le texte transcrit de l'utilisateur ; la réponse textuelle reste affichée dans tous les cas.
+
+\subsection{Validation de l'intégration vocale}
+Le projet contient une validation \emph{contractuelle} de l'intégration Speech-to-Text, exécutée dans le pipeline CI (job de validation hors ligne, section~\ref{sec:ci-jobs}). Elle vérifie les points listés au tableau~\ref{tab:val-stt}.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Points vérifiés par la validation contractuelle du Speech-to-Text}\label{tab:val-stt}
+\begin{tabularx}{\textwidth}{@{}p{4.6cm}X@{}}
+\toprule
+\textbf{Point vérifié} & \textbf{Nature de la vérification} \\
+\midrule
+Existence de l'endpoint & La route de transcription est bien exposée par le backend \\
+Réception multipart & L'endpoint reçoit une requête \texttt{multipart/form-data} \\
+Absence de fichier & Le cas sans fichier audio est validé (réponse d'erreur) \\
+SDK Groq et modèle Whisper & L'intégration utilise le SDK Groq et un modèle Whisper \\
+Configuration de la langue & La configuration de la langue est prise en compte \\
+Format de réponse & La réponse JSON contient le texte transcrit \\
+Gestion des erreurs & Les erreurs sont traitées \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Cette validation contrôle la conformité du contrat d'intégration. Elle \textbf{ne constitue pas un benchmark de précision} de la transcription : aucun taux d'erreur sur les mots (WER) ni aucune mesure de précision STT n'a été produit dans ce projet.
+
+\subsection{Limites de l'interaction vocale}
+\begin{itemize}
+\item dépendance au service de transcription externe (disponibilité et qualité) ;
+\item absence de benchmark audio complet ;
+\item validation CI principalement contractuelle ;
+\item absence de test automatisé de bout en bout microphone $\rightarrow$ STT $\rightarrow$ assistant $\rightarrow$ TTS ;
+\item contraintes éventuelles liées aux environnements d'exécution (permissions et capacités audio de l'appareil ou de l'émulateur).
+\end{itemize}
+
+\section{Réalisation des mécanismes de résilience}
+\subsection{Gestion des erreurs des fournisseurs LLM}
+La classification des erreurs détermine le comportement (tableau~\ref{tab:erreurs-llm}). Les erreurs 429 (limitation temporaire du débit) donnent lieu à une nouvelle tentative puis, si besoin, au modèle de secours ; les erreurs 5xx comme 503 provoquent un nombre limité de tentatives pour éviter boucle infinie et hausse inutile de la latence ; les timeouts réseau sont traités comme récupérables ; une erreur 401 n'est pas répétée, car la même requête ne résoudrait pas un problème d'authentification, et elle est traitée comme non récupérable.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Comportements implémentés selon le type d'erreur LLM}\label{tab:erreurs-llm}
+\begin{tabularx}{\textwidth}{@{}p{5.6cm}X@{}}
+\toprule
+\textbf{Scénario} & \textbf{Comportement attendu} \\
+\midrule
+429, limitation de débit & Basculement vers le modèle de secours (retry avant fallback si nécessaire) \\
+503 temporaire & Retry du fournisseur principal \\
+Plusieurs 503 successifs & Retry borné puis fallback \\
+Timeout réseau (ETIMEDOUT) & Nouvelle tentative \\
+401, authentification & Pas de retry automatique \\
+Erreur applicative non récupérable & Arrêt contrôlé \\
+Échec du principal et du secours & Échec contrôlé \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Implémentation du fallback}
+Le fallback intervient uniquement lorsque les tentatives auprès du fournisseur principal sont épuisées et que l'erreur est compatible avec une reprise ; le fournisseur principal reste le chemin nominal. Il a été validé par des tests automatisés couvrant les scénarios du tableau~\ref{tab:erreurs-llm} : basculement sur 429, retry borné sur 5xx, reprise après timeout, absence de retry sur 401 et sur erreur non récupérable, et épuisement du fallback (principal et secours en échec). Le fallback assure la continuité de l'étape d'interprétation mais ne remplace pas les contrôles applicatifs effectués sur le résultat du modèle.
+
+\subsection{Routage déterministe des actions}\label{sec:routage}
+Le routage ne dépend pas d'une nouvelle décision du modèle : le backend associe les trois intentions sur les tâches au Todo Connector et les trois intentions sur les événements à l'Agenda Connector, les autres intentions relevant du traitement conversationnel. Le modèle ne choisit donc jamais le service externe ; le comportement est plus prévisible, testable (tests de routage) et extensible par l'ajout d'un connecteur.
+
+\subsection{Gestion des réponses non reconnues}
+\intent{unrecognized} représente une demande hors périmètre, ambiguë, correspondant à aucune intention définie ou dont les informations sont insuffisantes. Aucune action n'est alors devinée ni exécutée. Cette situation, d'ordre fonctionnel, se distingue d'une erreur technique du fournisseur ; une intention reconnue mais dépourvue de paramètres suffisants passe d'abord par la validation avant tout envoi au service externe.
+
+\section{Intégration des connecteurs de productivité}
+Les connecteurs forment la frontière entre le backend et les API : ils encapsulent la construction des requêtes HTTP, la transmission des paramètres et de l'authentification, l'interprétation des réponses et le traitement des erreurs (figure~\ref{fig:archi}).
+
+\subsection{Connecteur Todo}
+Le Todo Connector prend en charge la création, la modification et la suppression de tâches (\texttt{createTask}, \texttt{modifyTask}, \texttt{deleteTask}). Il reçoit des paramètres déjà interprétés et validés et les convertit au format attendu par l'API ; la création de tâche aboutit, côté connecteur HTTP, à une requête \texttt{POST /tasks}. Pour « Crée une tâche pour préparer le rapport », l'intention \intent{create_task} est validée, puis l'action est transmise au connecteur, qui construit la requête de création. La logique conversationnelle ne contient aucun détail d'endpoint ou de format HTTP. Les modifications et suppressions requièrent une cible permettant d'identifier la ressource.
+
+\subsection{Connecteur Agenda}
+L'Agenda Connector assure de même la création, la modification et la suppression d'événements (\texttt{createEvent}, \texttt{modifyEvent}, \texttt{deleteEvent}) à partir des informations extraites et normalisées (titre, date, heure, durée, paramètres de l'opération) ; la création d'événement aboutit à une requête \texttt{POST /events}. Des connecteurs simulés (\emph{stub}) sont conservés pour des tests indépendants des services externes, le choix entre connecteur réel et simulé étant fait par configuration, tandis que les connecteurs réels valident l'intégration avec les API.
+
+\subsection{Requêtes HTTP, réponses et authentification}
+Une requête HTTP comprend une méthode, une URL, des en-têtes, l'authentification et un corps. Le connecteur analyse la réponse pour déterminer succès ou erreur et ne transmet pas d'objet HTTP brut à la logique conversationnelle. Les situations considérées sont : succès (conversion du résultat), ressource inexistante (404, signalement de l'absence), erreur serveur (5xx, erreur d'intégration), erreur d'authentification, erreur réseau et réponse inattendue (gestion contrôlée).
+
+L'authentification est gérée dans la couche des connecteurs : les informations sensibles restent dans la configuration de l'environnement et sont ajoutées aux en-têtes lors de la construction de la requête. Le backend n'a pas à connaître les détails d'authentification de chaque service, les secrets ne sont pas dans le code source et la configuration peut changer sans modifier la logique conversationnelle. Cette authentification d'accès aux services est distincte de l'authentification globale de l'application, hors périmètre.
+
+\subsection{Validation des contrats d'intégration}
+Deux catégories de tests vérifient les connecteurs : les tests de \emph{contrats}, qui confirment que les opérations exposées respectent les comportements attendus et que les données restent cohérentes entre orchestrateur et couche d'intégration, et les tests d'\emph{intégration API}, qui couvrent les opérations Todo et Agenda, la transmission de l'authentification, les ressources inexistantes, les erreurs serveur et la gestion contrôlée des réponses en erreur. Les scénarios validés comprennent les cas de succès, les réponses 404, les erreurs 500 et les problèmes d'authentification. Des scripts automatisés dédiés ont été exécutés avec succès lors de la validation du projet.
+
+\section{Tests et validation fonctionnelle}
+\subsection{Stratégie de test}
+\begin{table}[htbp]
+\centering\small
+\caption{Catégories de tests}\label{tab:tests-cat}
+\begin{tabularx}{\textwidth}{@{}p{4.6cm}X@{}}
+\toprule
+\textbf{Catégorie} & \textbf{Objectif principal} \\
+\midrule
+Compilation & Vérifier que le projet se construit correctement \\
+Connecteurs et API & Vérifier les contrats et l'intégration avec les API \\
+Entités & Vérifier l'extraction des paramètres utiles aux actions \\
+Généralisation & Vérifier la reconnaissance d'intentions sur des formulations inédites \\
+Fallback & Vérifier la résistance aux erreurs des fournisseurs LLM \\
+Routage et titres & Vérifier l'association intention/connecteur et le routage des titres \\
+Transcription vocale & Vérifier le contrat d'intégration STT (section~\ref{sec:voix}) \\
+Scénarios conversationnels & Vérifier le comportement global du pipeline \\
+Évaluation par jeu de données & Mesurer les performances globales (section~\ref{sec:eval-quant}) \\
+Frontend & Vérifier le typage et la qualité statique de l'interface \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Une partie importante des tests est déterministe et exécutable systématiquement ; les tests utilisant un fournisseur LLM sont traités séparément en raison des possibles erreurs de disponibilité ou de limitation de débit. Cette séparation évite de considérer une indisponibilité du fournisseur comme une régression du code (section~\ref{sec:ci-jobs}).
+
+\subsection{Tests des connecteurs}
+Les tests des connecteurs ont couvert la création, la modification et la suppression de tâches et d'événements, la gestion de l'authentification, d'une ressource inexistante, d'une erreur serveur et des erreurs d'intégration. Les validations automatisées des contrats et des API ont été exécutées avec succès (succès, authentification, 404, 500).
+
+\subsection{Tests d'extraction des entités}
+Une intention correctement identifiée peut s'accompagner d'une extraction erronée ; des tests ciblés couvrent donc titres de tâches et d'événements, personnes, dates, heures, durées et cibles de modification ou suppression. Ils vérifient par exemple « Appelle Karim demain » ou « Crée une réunion avec Sara vendredi à 14h pendant une heure ». Les 5 cas des scénarios d'extraction ciblés ont été correctement traités. L'évaluation sur le jeu complet (section~\ref{sec:eval-quant}) montre que l'extraction reste plus sensible aux variations que la classification, ce qui justifie des métriques dédiées (rappel, précision, correction des valeurs).
+
+\subsection{Tests de généralisation des intentions}\label{sec:tests-generalisation}
+Ces tests vérifient que l'assistant ne se limite pas aux formulations exactes de sa conception : par exemple, « Crée une tâche pour préparer le rapport », « Ajoute une tâche : préparer le rapport » et « Je dois préparer le rapport, ajoute-le à mes tâches » doivent toutes donner \intent{create_task}. Le jeu comporte 33 cas couvrant les intentions fonctionnelles et conversationnelles ; \textbf{33 cas sur 33} ont été correctement classés (100~\%). Ce résultat est distinct de l'évaluation du jeu de 65 cas et ne garantit pas la reconnaissance de toutes les formulations possibles ; ces tests constituent surtout un mécanisme de détection de régression (modification du prompt, de l'interprétation ou du routage).
+
+\subsection{Tests des mécanismes de fallback}
+Les scénarios simulés sont ceux du tableau~\ref{tab:erreurs-llm}. La validation automatisée a confirmé le failover sur 429, le retry borné sur 5xx, le retry réseau, l'absence de retry pour les erreurs non récupérables et la gestion de l'épuisement du fallback. Ce test est important, la disponibilité du fournisseur étant une dépendance externe : l'application doit distinguer une indisponibilité temporaire d'un problème de configuration.
+
+\subsection{Tests des scénarios conversationnels}
+Ils vérifient l'enchaînement classification, extraction, validation, construction de l'action, routage, connecteur et résultat sur des scénarios représentatifs.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Scénarios conversationnels de référence}\label{tab:scenarios}
+\begin{tabularx}{\textwidth}{@{}p{3.6cm}p{3.1cm}X@{}}
+\toprule
+\textbf{Scénario} & \textbf{Intention} & \textbf{Vérification principale} \\
+\midrule
+Création de tâche & \intent{create_task} & Extraction du titre, routage Todo \\
+Modification de tâche & \intent{modify_task} & Identification de la cible et nouvelle valeur \\
+Suppression de tâche & \intent{delete_task} & Résolution de la cible \\
+Création d'événement & \intent{create_event} & Gestion des paramètres temporels \\
+Modification d'événement & \intent{modify_event} & Identification et modification de la cible \\
+Suppression d'événement & \intent{delete_event} & Routage vers Agenda \\
+Salutation, remerciement & \intent{greeting}, \intent{thanks} & Réponse conversationnelle sans action externe \\
+Demande de capacités & \intent{capabilities} & Présentation des fonctionnalités supportées \\
+Demande non reconnue & \intent{unrecognized} & Absence d'action externe \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Évaluation quantitative du système}\label{sec:eval-quant}
+L'évaluation quantitative complète les tests fonctionnels par des indicateurs numériques. Elle repose sur un jeu de 65 cas couvrant les intentions prises en charge ; l'évaluation locale est analysée ici, l'exécution CI en section~\ref{sec:ci-analyse}, car l'évaluation dépend d'un service LLM externe susceptible d'erreurs de disponibilité ou de limitation de débit.
+
+\subsection{Évaluation sur le jeu de données de référence}
+Le système définit treize intentions dans son classifieur, couvrant les opérations de tâches et d'événements, la synthèse de période, les échanges conversationnels, la présentation des capacités et les demandes non reconnues. Le jeu de 65 cas constitue un sous-ensemble d'évaluation de ces comportements, avec plusieurs formulations pour les scénarios retenus. Les métriques sont définies au tableau~\ref{tab:metriques}. Lors de l'exécution locale, les 65 cas ont été traités sans erreur du fournisseur.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Évaluation locale du jeu de données (65 cas)}\label{tab:eval-locale}
+\begin{tabularx}{\textwidth}{@{}Xr@{}}
+\toprule
+\textbf{Métrique} & \textbf{Résultat} \\
+\midrule
+Nombre de cas & 65 \\
+Couverture & 100~\% \\
+Erreurs fournisseur & 0 \\
+Exactitude des intentions & 100~\% \\
+Rappel / exactitude des entités & 94,4~\% \\
+Précision des entités & 57,6~\% \\
+Taux d'entités inattendues & 40,7~\% \\
+Latence moyenne & environ 4\,106~ms \\
+Confiance moyenne & environ 0,965 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Ces résultats correspondent à une exécution donnée, non à une garantie de comportement sur toutes les requêtes possibles.
+
+\subsection{Classification des intentions}
+Sur le jeu local, l'exactitude est de $65/65 = 100~\%$ : aucune erreur de classification n'a été observée. Cette stabilité est importante, l'intention conditionnant le routage déterministe vers le connecteur Todo ou Agenda. Elle ne signifie pas que la classification est définitivement résolue : le dataset reste limité face à la diversité du langage naturel.
+
+\subsection{Rappel et précision de l'extraction des entités}
+Le rappel/exactitude de 94,4~\% indique que le système retrouve la plupart des informations attendues ; la précision de 57,6~\% et le taux d'entités inattendues de 40,7~\% montrent que le modèle produit aussi des informations supplémentaires par rapport à la référence. Une extraction trop restrictive perdrait un paramètre nécessaire, une extraction trop large introduit des paramètres inutiles ou incorrects. L'extraction constitue donc, dans l'état actuel, un axe d'amélioration plus important que la classification.
+
+\subsection{Analyse des erreurs et des cas limites}
+\begin{itemize}
+\item \textbf{Variations linguistiques} : les 33 formulations inédites ont été correctement classées, dans les limites de ce jeu.
+\item \textbf{Informations incomplètes ou ambiguës} : « Crée une réunion avec Sara » identifie \intent{create_event} sans date ni heure ; le système ne doit pas compléter arbitrairement, et la validation des paramètres intervient avant l'envoi au connecteur.
+\item \textbf{Entités supplémentaires} : le taux de 40,7~\% explique en grande partie l'écart entre rappel et précision. Il ne signifie pas que toutes les actions produites sont incorrectes, mais que la sortie contient plus d'informations que la référence.
+\item \textbf{Erreurs du fournisseur} : elles perturbent les exécutions en environnement CI (section~\ref{sec:ci-analyse}) et sont suivies séparément.
+\end{itemize}
+
+\subsection{Résultats et interprétation}
+La classification des intentions est actuellement le composant le plus stable (100~\% sur le jeu local, généralisation 33/33 présentée en section~\ref{sec:tests-generalisation}). L'extraction des entités est plus délicate : un travail sur le contrôle et la structuration des sorties du modèle est pertinent. La latence moyenne locale (environ 4,1~s) dépend du fournisseur, du réseau et de l'environnement. Les résultats de la section~\ref{sec:ci-analyse} sont à lire séparément.
+
+\section{Intégration continue et contrôle qualité}
+Un processus d'intégration continue a été mis en place avec GitHub Actions pour exécuter systématiquement les contrôles : compilation, tests des connecteurs, routage, résilience, validation du contrat de transcription vocale, évaluation du comportement du modèle et validation du frontend. Le workflow distingue les validations déterministes des évaluations dépendant d'un fournisseur LLM externe.
+
+\subsection{Automatisation des tests avec GitHub Actions}\label{sec:ci-jobs}
+La configuration est définie dans \texttt{.github/workflows/assistant-validation.yml}, organisée en trois jobs (tableau~\ref{tab:ci-jobs}, annexe~\ref{ann:ci}).
+
+\begin{table}[htbp]
+\centering\small
+\caption{Jobs et validations du workflow GitHub Actions}\label{tab:ci-jobs}
+\begin{tabularx}{\textwidth}{@{}p{3.3cm}X@{}}
+\toprule
+\textbf{Job} & \textbf{Validations} \\
+\midrule
+\texttt{offline-validation} & Récupération du dépôt ; installation des dépendances ; génération du client Prisma ; build du backend ; tests déterministes : intent regression, title routing, model fallback, connector contracts, API connector tests, validation du contrat Speech-to-Text \\
+\texttt{live-llm-evaluation} & Exécuté avec la clé du fournisseur disponible : généralisation des intentions ; extraction des entités ; évaluation du jeu de données figé (frozen dataset) ; regression gate \\
+\texttt{frontend-validation} & Installation des dépendances (\texttt{npm ci}) ; compilation TypeScript (\texttt{tsc}, sans émission) ; analyse ESLint \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Cette organisation permet de reproduire les validations sans exécution manuelle et d'éviter d'exposer des secrets dans le dépôt, la clé du fournisseur n'étant utilisée que par l'évaluation LLM.
+
+\subsection{Exécution des validations dans le pipeline CI}
+La partie déterministe constitue le premier niveau de contrôle : elle détecte les erreurs de compilation et les régressions sur les fonctionnalités déjà validées. Côté frontend, la validation CI a confirmé que \texttt{npm ci} s'exécute correctement, que \texttt{npx tsc -{}-noEmit} ne produit pas d'erreur et qu'ESLint s'exécute ; une seule alerte, sans erreur bloquante, concerne la règle \texttt{@typescript-eslint/no-empty-object-type}.
+
+Le projet dispose ainsi d'une \textbf{intégration continue et d'un contrôle qualité automatisé}. Il ne met pas en œuvre de déploiement continu (Continuous Deployment) vers un environnement de production.
+
+\subsection{Mise en place du mécanisme de régression}
+La référence est stockée dans \texttt{backend/evaluation-baseline.json} ; ses valeurs sont les seuils du tableau~\ref{tab:seuils} (généralisation 100~\%, extraction 100~\%, exactitude minimale 95~\%, régression maximale 5 points). Le gate compare les indicateurs de la nouvelle évaluation à la référence et échoue si l'exactitude passe sous le seuil minimal ou si la diminution dépasse 5 points ; sinon, il est en succès (PASS). Il est particulièrement utile pour un système à LLM, où une modification du prompt ou du traitement des entités peut changer le comportement alors que le code compile toujours. Il utilise des métriques et des critères propres, distincts de l'évaluation descriptive du jeu complet (section~\ref{sec:eval-quant}).
+
+\subsection{Analyse des résultats d'intégration continue}\label{sec:ci-analyse}
+Lors de l'exécution analysée (workflow \emph{AI MLOps Validation}, run \#69), le statut global du workflow est réussi : validations déterministes et contrôle de régression ont été exécutés correctement. L'évaluation LLM du jeu de données a toutefois été classée \texttt{DEGRADED} : sur 65 cas planifiés, 62 ont été complétés et 3 ont rencontré des erreurs (notamment des réponses 429 de limitation de débit et une erreur d'évaluation).
+
+\begin{table}[htbp]
+\centering\small
+\caption{Évaluation LLM du run CI \#69 (exécution dégradée)}\label{tab:ci69}
+\begin{tabularx}{\textwidth}{@{}Xr@{}}
+\toprule
+\textbf{Élément} & \textbf{Résultat CI \#69} \\
+\midrule
+Cas planifiés / complétés & 65 / 62 \\
+Couverture & 95,4~\% \\
+Erreurs (fournisseur et évaluation) & 3 \\
+Exactitude des intentions (cas complétés) & 93,5~\% \\
+Rappel / exactitude des entités & 88,2~\% \\
+Précision des entités & 51,7~\% \\
+Taux d'entités inattendues & 43,1~\% \\
+Latence moyenne & 6\,658,2~ms \\
+Confiance moyenne & 0,915 \\
+Statut de l'évaluation LLM & \texttt{DEGRADED} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\textbf{Ces résultats ne doivent pas être interprétés comme une régression fonctionnelle du code.} Ils sont influencés par les erreurs du fournisseur LLM (couverture réduite, latences plus élevées) et mesurés sur 62 cas au lieu de 65 ; ils ne sont pas comparables terme à terme à l'évaluation locale complète. La régression est évaluée séparément par le regression gate.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Regression gate lors de la validation CI considérée (comparaison aux seuils du tableau~\ref{tab:seuils})}\label{tab:gate-res}
+\begin{tabularx}{\textwidth}{@{}Xr@{}}
+\toprule
+\textbf{Indicateur du gate} & \textbf{Observé (référence)} \\
+\midrule
+Généralisation des intentions & 100~\% (100~\%) \\
+Extraction des entités (indicateur du gate) & 100~\% (100~\%) \\
+Régression constatée & 0 point (maximum autorisé : 5) \\
+Seuil minimal & respecté \\
+Statut du regression gate & PASS \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Le workflow permet à l'évaluation LLM de signaler une exécution dégradée sans empêcher le contrôle de régression de se poursuivre : une difficulté temporaire du service externe ne masque pas les résultats déterministes. Les résultats peuvent être conservés comme artefacts d'évaluation pour analyse ultérieure. Le tableau~\ref{tab:niveaux} synthétise les quatre niveaux de résultats, à ne pas confondre.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Les quatre niveaux de résultats d'évaluation}\label{tab:niveaux}
+\begin{tabularx}{\textwidth}{@{}p{3.3cm}p{4.6cm}X@{}}
+\toprule
+\textbf{Niveau} & \textbf{Ce qu'il mesure} & \textbf{Résultat} \\
+\midrule
+Évaluation locale du jeu & Comportement descriptif sur 65 cas & Intentions 100~\%, entités 94,4~\% (rappel) et 57,6~\% (précision) \\
+Généralisation & Formulations inédites & 33/33 (100~\%) \\
+Exécution CI \#69 & Évaluation LLM dégradée par le fournisseur & 62/65 cas, intentions 93,5~\%, statut \texttt{DEGRADED} \\
+Regression gate & Écart aux seuils de référence & Pas de régression, PASS \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Bilan et limites de la réalisation}
+\subsection{Fonctionnalités réalisées}
+\begin{table}[htbp]
+\centering\small
+\caption{Fonctionnalités réalisées}\label{tab:realise}
+\begin{tabularx}{\textwidth}{@{}p{4.4cm}X@{}}
+\toprule
+\textbf{Fonctionnalité} & \textbf{Réalisation} \\
+\midrule
+Compréhension et intentions & Interprétation par LLM ; intentions de tâches, d'événements et conversationnelles \\
+Entités et normalisation & Extraction, normalisation, résolution des cibles, validation avant exécution \\
+Tâches et événements & Création, modification, suppression via les connecteurs Todo et Agenda \\
+Routage et confirmation & Routage déterministe, proposition d'action et confirmation \\
+Interaction vocale & Dictée via transcription Whisper (Groq) injectée dans le même pipeline ; lecture vocale avec Expo Speech, désactivable \\
+Résilience & Classification des erreurs, retry borné, fallback, requêtes non reconnues sans action externe \\
+Évaluation et CI & Jeux de données, généralisation, extraction, regression gate, GitHub Actions \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Limites de l'intégration externe}
+Le système dépend des fournisseurs de modèles (LLM et transcription) et des API Todo et Agenda : indisponibilité, erreur réseau, limitation de débit ou réponse inattendue peuvent affecter une requête, comme l'a montré l'exécution CI dégradée (section~\ref{sec:ci-analyse}). Retry et fallback améliorent la continuité pour les erreurs temporaires mais ne suppriment pas ces dépendances, et une évolution importante d'une API externe peut exiger l'adaptation du connecteur correspondant. La précision de l'extraction des entités (57,6~\% en local) constitue une piste d'amélioration prioritaire. Les limites propres à l'interaction vocale sont détaillées en section~\ref{sec:voix}.
+
+\subsection{Limites liées à l'environnement de déploiement}\label{sec:limites-deploiement}
+Le projet a été développé et validé en environnement de développement et d'intégration continue, avec SQLite ; un déploiement à grande échelle demanderait une réflexion sur la base de données, la concurrence, les sauvegardes et la supervision. Le pipeline GitHub Actions n'est pas une chaîne de déploiement continu. La latence (environ 4,1~s en local ; environ 6,7~s dans l'exécution CI dégradée) dépend du fournisseur, du réseau et de l'environnement ; un usage à plus grande échelle nécessiterait d'étudier latence, concurrence et coûts. Enfin, les secrets doivent être configurés de manière sécurisée selon l'infrastructure cible.
+
+\chapconcl
+La réalisation a produit une base fonctionnelle et testée : pipeline de compréhension, entrée et sortie vocales, validation et routage, connecteurs Todo et Agenda, retry et fallback, évaluation automatisée avec contrôle de régression en CI. Les résultats doivent être lus en distinguant l'évaluation locale, la généralisation, l'exécution CI dégradée par le fournisseur et le regression gate. Disponibilité des fournisseurs, latence, précision de l'extraction des entités et validation vocale uniquement contractuelle sont les principaux axes d'amélioration.
+
+% ============================== CONCLUSION GENERALE ==============================
+\chapter*{Conclusion générale et perspectives}
+\phantomsection\addcontentsline{toc}{chapter}{Conclusion générale et perspectives}
+\markboth{Conclusion générale et perspectives}{}
+Ce stage avait pour objectif de concevoir et de réaliser la composante intelligente d'un assistant de productivité interprétant des requêtes en langage naturel, saisies ou dictées, pour les transformer en actions sur des tâches et des événements, avec une architecture suffisamment robuste face aux erreurs des modèles, à la variabilité des requêtes et aux dépendances externes.
+
+L'analyse du contexte et des architectures possibles a conduit à une approche hybride : le LLM assure la compréhension, tandis que la logique applicative conserve la validation, la normalisation, le routage et l'exécution. La réalisation a livré la classification des intentions, l'extraction et la normalisation des entités, les connecteurs Todo et Agenda avec confirmation préalable, l'interaction vocale (transcription Whisper via Groq, lecture avec Expo Speech) intégrée au même pipeline, ainsi que des mécanismes de retry et de fallback.
+
+Les résultats sont les suivants : 33 cas corrects sur 33 en généralisation ; 100~\% de couverture et d'exactitude des intentions sur l'évaluation locale de 65 cas, avec un rappel des entités de 94,4~\% mais une précision de 57,6~\%. L'exécution CI \#69, dégradée par des erreurs du fournisseur, ne traduit pas une régression du code, que le regression gate évalue séparément. L'intégration vocale n'est validée que de manière contractuelle : aucun benchmark de précision de transcription n'a été réalisé. Le projet dispose d'une intégration continue et d'un contrôle qualité automatisé, mais pas d'un déploiement continu.
+
+\paragraph{Perspectives.}
+\begin{itemize}
+\item améliorer l'extraction des entités pour réduire les entités parasites ;
+\item optimiser la latence (choix des modèles, taille des prompts, cache, réduction des appels) ;
+\item renforcer la gestion des fournisseurs (sélection dynamique, quotas, disponibilité) ;
+\item étendre les services intégrés (autres calendriers, outils de tâches ou de communication) ;
+\item enrichir le jeu d'évaluation (formulations multilingues, ambiguës, contextuelles) et ajouter un benchmark audio de la transcription (par exemple par WER) ainsi qu'un test automatisé de bout en bout de la chaîne vocale ;
+\item mettre en place supervision, sécurité des secrets et infrastructure multi-utilisateur adaptée, puis étendre le pipeline vers un déploiement continu.
+\end{itemize}
+Ce projet a permis de mettre en pratique l'IA, le développement backend, l'intégration d'API, les tests automatisés et l'intégration continue, et de souligner l'importance de la validation déterministe, de l'évaluation quantitative et de la résilience lorsqu'un système dépend de modèles de langage et de services externes.
+
+% ============================== BIBLIOGRAPHIE ==============================
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{Bibliographie}
+\renewcommand{\bibname}{Bibliographie}
+\begin{thebibliography}{9}
+\bibitem{goodfellow2016} I. Goodfellow, Y. Bengio et A. Courville, \emph{Deep Learning}, MIT Press, 2016.
+\bibitem{manning2008} C. D. Manning, P. Raghavan et H. Schütze, \emph{Introduction to Information Retrieval}, Cambridge University Press, 2008.
+\bibitem{huyen2022} C. Huyen, \emph{Designing Machine Learning Systems}, O'Reilly Media, 2022.
+\bibitem{kleppmann2017} M. Kleppmann, \emph{Designing Data-Intensive Applications}, O'Reilly Media, 2017.
+\bibitem{gamma1994} E. Gamma, R. Helm, R. Johnson et J. Vlissides, \emph{Design Patterns: Elements of Reusable Object-Oriented Software}, Addison-Wesley, 1994.
+\bibitem{sommerville2015} I. Sommerville, \emph{Software Engineering}, 10\textsuperscript{e} éd., Pearson, 2015.
+\bibitem{vaswani2017} A. Vaswani et al., « Attention Is All You Need », \emph{Advances in Neural Information Processing Systems (NeurIPS)}, 2017.
+\bibitem{radford2023} A. Radford et al., « Robust Speech Recognition via Large-Scale Weak Supervision », \emph{International Conference on Machine Learning (ICML)}, 2023.
+\end{thebibliography}
+
+\clearpage
+\phantomsection
+\addcontentsline{toc}{chapter}{Webographie}
+\renewcommand{\bibname}{Webographie}
+\begin{thebibliography}{W10}
+\bibitem[W1]{web:openai} OpenAI, \emph{OpenAI Platform Documentation} : \texttt{https://platform.openai.com/docs}
+\bibitem[W2]{web:groq} Groq, \emph{Groq API Documentation} (accès aux modèles de langage et de transcription) : \texttt{https://console.groq.com/docs}
+\bibitem[W3]{web:prisma} Prisma, \emph{Prisma Documentation} : \texttt{https://www.prisma.io/docs}
+\bibitem[W4]{web:gha} GitHub, \emph{GitHub Actions Documentation} : \texttt{https://docs.github.com/actions}
+\bibitem[W5]{web:node} Node.js, \emph{Node.js Documentation} : \texttt{https://nodejs.org/docs}
+\bibitem[W6]{web:ts} TypeScript, \emph{TypeScript Documentation} : \texttt{https://www.typescriptlang.org/docs}
+\bibitem[W7]{web:rn} React Native, \emph{React Native Documentation} : \texttt{https://reactnative.dev/docs}
+\bibitem[W8]{web:expo} Expo, \emph{Expo Documentation} (dont le module Speech) : \texttt{https://docs.expo.dev}
+\bibitem[W9]{web:mdn} MDN Web Docs, \emph{HTTP} : \texttt{https://developer.mozilla.org/docs/Web/HTTP}
+\bibitem[W10]{web:git} Git, \emph{Git Documentation} : \texttt{https://git-scm.com/doc}
+\end{thebibliography}
+
+% ============================== ANNEXES ==============================
+\appendix
+\chapter{Configuration des connecteurs API}\label{ann:connecteurs}
+Aucune clé d'API, aucun mot de passe, jeton ou secret n'est reproduit dans ce rapport : ces informations sont fournies par la configuration de l'environnement d'exécution et ajoutées aux requêtes par les connecteurs.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Responsabilités et opérations des connecteurs}\label{tab:ann-conn}
+\begin{tabularx}{\textwidth}{@{}p{3.3cm}p{4.3cm}X@{}}
+\toprule
+\textbf{Connecteur} & \textbf{Opérations du contrat} & \textbf{Intentions routées} \\
+\midrule
+Todo Connector & \texttt{createTask}, \texttt{modifyTask}, \texttt{deleteTask} & \intent{create_task}, \intent{modify_task}, \intent{delete_task} \\
+Agenda Connector & \texttt{createEvent}, \texttt{modifyEvent}, \texttt{deleteEvent} & \intent{create_event}, \intent{modify_event}, \intent{delete_event} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[htbp]
+\centering\small
+\caption{Éléments de configuration externalisés}\label{tab:ann-config}
+\begin{tabularx}{\textwidth}{@{}p{5cm}X@{}}
+\toprule
+\textbf{Élément} & \textbf{Gestion} \\
+\midrule
+Identifiants des services Todo et Agenda & Variables d'environnement, ajoutées aux en-têtes par le connecteur \\
+Clé du fournisseur de modèles (Groq) & Configuration de l'environnement ; secret du dépôt pour l'évaluation CI \\
+Adresse du backend (frontend) & Variable d'environnement du frontend (fichier d'exemple \texttt{.env.example}) \\
+Choix du connecteur (réel ou simulé) & Variable de configuration \texttt{PRODUCTIVITY\_CONNECTOR} \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\chapter{Exemples de requêtes et réponses HTTP}\label{ann:http}
+Cette annexe décrit les échanges de façon schématique ; les noms de champs exacts sont ceux du code du projet.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Échange de transcription vocale}\label{tab:ann-http}
+\begin{tabularx}{\textwidth}{@{}p{4cm}X@{}}
+\toprule
+\textbf{Élément} & \textbf{Description} \\
+\midrule
+Requête & \texttt{POST /assistant/transcribe}, en-tête \texttt{Content-Type: multipart/form-data}, corps : fichier audio enregistré \\
+Réponse de succès & Objet JSON contenant le texte transcrit \\
+Absence de fichier audio & Réponse d'erreur, aucun appel au service de transcription \\
+Erreur du service & Erreur interceptée, réponse d'erreur affichée dans la conversation sous forme de bulle d'erreur de l'assistant \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{table}[htbp]
+\centering\small
+\caption{Échanges de traitement d'une requête et de confirmation}\label{tab:ann-http2}
+\begin{tabularx}{\textwidth}{@{}p{4cm}X@{}}
+\toprule
+\textbf{Élément} & \textbf{Description} \\
+\midrule
+\texttt{POST /assistant/message} & Corps : \texttt{inputText}, \texttt{inputMode} ; réponse : résultat d'interprétation, proposition d'action (\texttt{proposedAction}) et message de confirmation \\
+\texttt{POST /assistant/confirm-action} & Corps : \texttt{interactionId}, \texttt{intent}, \texttt{details}, \texttt{targetId} ; réponse : élément créé, interaction mise à jour et message de confirmation \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Les échanges des connecteurs avec les API externes suivent le traitement du tableau~\ref{tab:http} : succès (2xx) converti en résultat normalisé, erreurs d'authentification et ressource inexistante (404) retournées de façon contrôlée, erreurs serveur (500, 5xx) remontées comme erreurs d'intégration.
+
+\chapter{Exemples du jeu de données d'évaluation}\label{ann:dataset}
+Les requêtes ci-dessous sont les exemples utilisés dans ce rapport pour illustrer chaque catégorie d'intention ; le jeu de 65 cas complet figure dans le dépôt du projet.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Exemples de requêtes par intention}\label{tab:ann-dataset}
+\begin{tabularx}{\textwidth}{@{}p{3cm}X@{}}
+\toprule
+\textbf{Intention} & \textbf{Exemple de requête} \\
+\midrule
+\intent{create_task} & « Crée une tâche pour préparer le rapport. » ; « Je dois préparer le rapport, ajoute-le à mes tâches. » \\
+\intent{modify_task} & « Modifie la tâche rapport final et renomme-la en rapport finalisé. » \\
+\intent{create_event} & « Créer une réunion avec Sara vendredi à 14h pendant une heure. » ; « Planifie une réunion avec Karim vendredi à 10 heures. » \\
+Entités (extraction) & « Appelle Karim demain. » \\
+Requête incomplète & « Crée une réunion avec Sara. » (date et heure absentes) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\chapter{Résultats détaillés des tests automatisés}\label{ann:resultats}
+Les métriques chiffrées du jeu de données figurent aux tableaux~\ref{tab:eval-locale}, \ref{tab:ci69} et~\ref{tab:gate-res}. Le tableau~\ref{tab:ann-tests} récapitule l'état des autres validations.
+
+\begin{table}[htbp]
+\centering\small
+\caption{Résultats des validations automatisées}\label{tab:ann-tests}
+\begin{tabularx}{\textwidth}{@{}p{4.3cm}X@{}}
+\toprule
+\textbf{Validation} & \textbf{Résultat} \\
+\midrule
+Contrats des connecteurs et tests API & Exécutés avec succès (succès, authentification, 404, 500) \\
+Fallback et résilience & Failover sur 429, retry borné sur 5xx, retry réseau, aucun retry sur erreur non récupérable, épuisement du fallback géré \\
+Extraction ciblée des entités & 5 cas sur 5 corrects \\
+Généralisation des intentions & 33 cas sur 33 corrects \\
+Contrat Speech-to-Text & Validation contractuelle (tableau~\ref{tab:val-stt}) ; aucune mesure de précision de transcription \\
+Frontend & \texttt{npm ci} et \texttt{tsc} sans erreur ; ESLint avec une alerte \texttt{no-empty-object-type}, sans erreur bloquante \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\chapter{Configuration du pipeline GitHub Actions}\label{ann:ci}
+Structure schématique du fichier \texttt{.github/workflows/assistant-validation.yml} (noms de jobs et d'étapes, sans secret) :
+\begin{lstlisting}
+jobs:
+  offline-validation:        # deterministe, sans fournisseur LLM
+    - checkout du depot
+    - installation des dependances
+    - generation du client Prisma
+    - build du backend
+    - intent regression / title routing / model fallback
+    - connector contracts / API connector tests
+    - validation du contrat Speech-to-Text
+  live-llm-evaluation:       # necessite la cle du fournisseur (secret du depot)
+    - generalisation des intentions
+    - extraction des entites
+    - evaluation du jeu de donnees fige (frozen dataset)
+    - regression gate (baseline : backend/evaluation-baseline.json)
+  frontend-validation:
+    - npm ci
+    - npx tsc --noEmit
+    - ESLint
+\end{lstlisting}
+
+\end{document}
