@@ -1,6 +1,6 @@
 # Multilingual AI Productivity Assistant
 
-A full-stack AI productivity assistant developed during an **AI Summer Internship at 3LM Solutions**. The project combines natural-language understanding, conversational AI, voice interaction, productivity APIs, persistent interaction history, automated regression testing, and GitHub Actions validation.
+A full-stack AI productivity assistant developed during an **AI Summer Internship at 3LM Solutions**. The project combines natural-language understanding, conversational AI, voice interaction, productivity APIs,  persistent interaction history, automated regression testing, and GitHub Actions validation.
 
 ## Project Overview
 
